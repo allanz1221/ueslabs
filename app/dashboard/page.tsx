@@ -1,33 +1,21 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  // Get user profile to check role
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile) {
-    redirect("/auth/login")
-  }
-
   // Redirect based on role
-  if (profile.role === "admin") {
+  if (user.role === "ADMIN" || user.role === "LAB_MANAGER") {
     redirect("/admin/dashboard")
   }
-  if (profile.role === "lab_manager") {
-    redirect("/admin/dashboard")
-  }
-  if (profile.role === "professor") {
+  
+  if (user.role === "PROFESSOR") {
     redirect("/professor/practices")
   }
+  
   redirect("/student/dashboard")
 }

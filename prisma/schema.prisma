@@ -7,6 +7,205 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Esquema inicial vacío: usaremos db push una vez definamos modelos
-// Puedes mapear tablas existentes de Supabase si decides migrar a MySQL
+// NextAuth.js tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId        String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(STUDENT)
+  program       Program?
+  studentId     String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  loans    Loan[]
+  reservations Reservation[]
+  practiceReports PracticeReport[]
+  
+  // Relations for approvers
+  approvedLoans Loan[] @relation("LoanApprover")
+  approvedReservations Reservation[] @relation("ReservationApprover")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Application models
+enum UserRole {
+  STUDENT
+  ADMIN
+  LAB_MANAGER
+  PROFESSOR
+}
+
+enum Program {
+  MECATRONICA
+  MANUFACTURA
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PICKED_UP
+  RETURNED
+  OVERDUE
+}
+
+enum ReservationStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+}
+
+enum RoomType {
+  LABORATORIO
+  AULA
+  TALLER
+}
+
+model Material {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  category          String
+  totalQuantity     Int      @default(0)
+  availableQuantity Int      @default(0)
+  location          String?
+  imageUrl          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  loanItems LoanItem[]
+}
+
+model Loan {
+  id                  String     @id @default(cuid())
+  studentId           String
+  program             Program?
+  requestDate         DateTime   @default(now())
+  expectedPickupDate  DateTime
+  expectedReturnDate  DateTime
+  actualPickupDate    DateTime?
+  actualReturnDate    DateTime?
+  status              LoanStatus @default(PENDING)
+  notes               String?
+  adminNotes          String?
+  approvedBy          String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  student User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  approver User?      @relation("LoanApprover", fields: [approvedBy], references: [id])
+  items   LoanItem[]
+}
+
+model LoanItem {
+  id         String   @id @default(cuid())
+  loanId     String
+  materialId String
+  quantity   Int
+  createdAt  DateTime @default(now())
+
+  loan    Loan    @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, materialId])
+}
+
+model Room {
+  id            String    @id @default(cuid())
+  name          String
+  capacity      Int?
+  type          RoomType
+  location      String?
+  program       Program?
+  responsibleId String?
+  createdAt     DateTime  @default(now())
+
+  reservations Reservation[]
+  practiceReports PracticeReport[]
+}
+
+model Reservation {
+  id            String            @id @default(cuid())
+  roomId        String
+  requestedBy   String
+  program       Program?
+  startTime     DateTime
+  endTime       DateTime
+  status        ReservationStatus @default(PENDING)
+  reason        String?
+  cancelReason  String?
+  approvedBy    String?
+  createdAt     DateTime          @default(now())
+
+  room      Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  requester User @relation(fields: [requestedBy], references: [id], onDelete: Cascade)
+  approver  User? @relation("ReservationApprover", fields: [approvedBy], references: [id])
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  name      String
+  program   Program
+  semester  Int
+  createdAt DateTime @default(now())
+
+  practiceReports PracticeReport[]
+}
+
+model PracticeReport {
+  id                   String   @id @default(cuid())
+  roomId               String
+  subjectId             String
+  program               Program
+  studentsCount         Int
+  practiceName          String
+  practiceDescription   String?
+  startTime             DateTime
+  endTime               DateTime
+  createdBy             String
+  createdAt             DateTime @default(now())
+
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  author  User    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+}

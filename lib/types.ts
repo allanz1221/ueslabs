@@ -1,13 +1,15 @@
-export type UserRole = "student" | "admin" | "lab_manager" | "professor"
+import { UserRole, Program, LoanStatus, ReservationStatus, RoomType } from "@prisma/client"
+
+export type { UserRole, Program, LoanStatus, ReservationStatus, RoomType }
 
 export interface Profile {
   id: string
   email: string
-  full_name: string
+  name: string | null
   role: UserRole
-  student_id: string | null
-  program?: Program | null
-  created_at: string
+  program: Program | null
+  studentId: string | null
+  createdAt: Date
 }
 
 export interface Material {
@@ -15,39 +17,37 @@ export interface Material {
   name: string
   description: string | null
   category: string
-  total_quantity: number
-  available_quantity: number
+  totalQuantity: number
+  availableQuantity: number
   location: string | null
-  image_url: string | null
-  created_at: string
-  updated_at: string
+  imageUrl: string | null
+  createdAt: Date
+  updatedAt: Date
 }
-
-export type LoanStatus = "pending" | "approved" | "rejected" | "picked_up" | "returned" | "overdue"
 
 export interface Loan {
   id: string
-  student_id: string
-  request_date: string
-  expected_pickup_date: string
-  expected_return_date: string
-  actual_pickup_date: string | null
-  actual_return_date: string | null
+  studentId: string
+  program: Program | null
+  requestDate: Date
+  expectedPickupDate: Date
+  expectedReturnDate: Date
+  actualPickupDate: Date | null
+  actualReturnDate: Date | null
   status: LoanStatus
   notes: string | null
-  admin_notes: string | null
-  approved_by: string | null
-  program?: Program | null
-  created_at: string
-  updated_at: string
+  adminNotes: string | null
+  approvedBy: string | null
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface LoanItem {
   id: string
-  loan_id: string
-  material_id: string
+  loanId: string
+  materialId: string
   quantity: number
-  created_at: string
+  createdAt: Date
 }
 
 export interface LoanWithDetails extends Loan {
@@ -56,12 +56,6 @@ export interface LoanWithDetails extends Loan {
   approver?: Profile
 }
 
-// Nuevos tipos para Agenda y Reporte de Prácticas
-
-export type Program = "mecatronica" | "manufactura"
-
-export type RoomType = "laboratorio" | "aula" | "taller"
-
 export interface Room {
   id: string
   name: string
@@ -69,24 +63,22 @@ export interface Room {
   type: RoomType
   location: string | null
   program: Program | null
-  responsible_id: string | null
-  created_at: string
+  responsibleId: string | null
+  createdAt: Date
 }
-
-export type ReservationStatus = "pending" | "approved" | "cancelled"
 
 export interface Reservation {
   id: string
-  room_id: string
-  requested_by: string
+  roomId: string
+  requestedBy: string
   program: Program | null
-  start_time: string
-  end_time: string
+  startTime: Date
+  endTime: Date
   status: ReservationStatus
   reason: string | null
-  cancel_reason: string | null
-  approved_by: string | null
-  created_at: string
+  cancelReason: string | null
+  approvedBy: string | null
+  createdAt: Date
 }
 
 export interface Subject {
@@ -94,19 +86,19 @@ export interface Subject {
   name: string
   program: Program
   semester: number
-  created_at: string
+  createdAt: Date
 }
 
 export interface PracticeReport {
   id: string
-  room_id: string
-  subject_id: string
+  roomId: string
+  subjectId: string
   program: Program
-  students_count: number
-  practice_name: string
-  practice_description: string | null
-  start_time: string
-  end_time: string
-  created_by: string
-  created_at: string
+  studentsCount: number
+  practiceName: string
+  practiceDescription: string | null
+  startTime: Date
+  endTime: Date
+  createdBy: string
+  createdAt: Date
 }
