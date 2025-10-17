@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Esquema inicial vacío: usaremos db push una vez definamos modelos
+// Puedes mapear tablas existentes de Supabase si decides migrar a MySQL
+
