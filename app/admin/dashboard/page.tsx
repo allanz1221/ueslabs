@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser, requireRole } from "@/lib/auth-server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
+import { LoanStatus } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 
 export default async function AdminDashboardPage() {
@@ -16,8 +17,8 @@ export default async function AdminDashboardPage() {
 
   // Get statistics using Prisma
   const totalLoans = await prisma.loan.count()
-  const pendingLoans = await prisma.loan.count({ where: { status: "pending" } })
-  const activeLoans = await prisma.loan.count({ where: { status: "picked_up" } })
+  const pendingLoans = await prisma.loan.count({ where: { status: LoanStatus.PENDING } })
+  const activeLoans = await prisma.loan.count({ where: { status: LoanStatus.PICKED_UP } })
   const totalMaterials = await prisma.material.count()
 
   // Get recent loans
