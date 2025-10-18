@@ -1,8 +1,19 @@
-// Supabase client configuration removed - using NextAuth.js instead
-// This file is kept for compatibility but Supabase is not used in this project
+import { createBrowserClient as createBrowserClientSSR } from "@supabase/ssr"
 
 export function createBrowserClient() {
-  throw new Error("Supabase is not configured in this project. Use NextAuth.js for authentication.")
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("[v0] Missing Supabase environment variables - using placeholder values")
+    // Return a mock client for development
+    return createBrowserClientSSR(
+      "https://placeholder.supabase.co",
+      "placeholder-key"
+    )
+  }
+
+  return createBrowserClientSSR(supabaseUrl, supabaseAnonKey)
 }
 
 export function createClient() {
