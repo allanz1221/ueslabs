@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+     "build": "prisma generate && next build",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "@auth/prisma-adapter": "^2.11.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
