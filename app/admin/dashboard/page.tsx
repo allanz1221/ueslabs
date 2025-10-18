@@ -1,65 +1,62 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser, requireRole } from "@/lib/auth-server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
+import { prisma } from "@/lib/prisma"
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile || profile.role !== "admin") {
+  if (user.role !== "ADMIN" && user.role !== "LAB_MANAGER") {
     redirect("/dashboard")
   }
 
-  // Get statistics
-  const { count: totalLoans } = await supabase.from("loans").select("*", { count: "exact", head: true })
-
-  const { count: pendingLoans } = await supabase
-    .from("loans")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "pending")
-
-  const { count: activeLoans } = await supabase
-    .from("loans")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "picked_up")
-
-  const { count: totalMaterials } = await supabase.from("materials").select("*", { count: "exact", head: true })
+  // Get statistics using Prisma
+  const totalLoans = await prisma.loan.count()
+  const pendingLoans = await prisma.loan.count({ where: { status: "pending" } })
+  const activeLoans = await prisma.loan.count({ where: { status: "picked_up" } })
+  const totalMaterials = await prisma.material.count()
 
   // Get recent loans
-  const { data: recentLoans } = await supabase
-    .from("loans")
-    .select(
-      `
-      *,
-      student:profiles!loans_student_id_fkey (*),
-      loan_items (
-        *,
-        material:materials (*)
-      )
-    `,
-    )
-    .order("created_at", { ascending: false })
-    .limit(5)
+  const recentLoans = await prisma.loan.findMany({
+    take: 5,
+    orderBy: { createdAt: "desc" },
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          studentId: true,
+        }
+      },
+      loanItems: {
+        include: {
+          material: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            }
+          }
+        }
+      }
+    }
+  })
 
   return (
     <AdminDashboard
-      profile={profile}
+      profile={user}
       stats={{
-        totalLoans: totalLoans || 0,
-        pendingLoans: pendingLoans || 0,
-        activeLoans: activeLoans || 0,
-        totalMaterials: totalMaterials || 0,
+        totalLoans,
+        pendingLoans,
+        activeLoans,
+        totalMaterials,
       }}
-      recentLoans={recentLoans || []}
+      recentLoans={recentLoans}
     />
   )
 }

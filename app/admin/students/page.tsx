@@ -1,26 +1,24 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
 import { AdminStudents } from "@/components/admin/admin-students"
 
 export default async function AdminStudentsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile || profile.role !== "admin") {
+  if (user.role !== "ADMIN" && user.role !== "LAB_MANAGER") {
     redirect("/dashboard")
   }
 
   // Get all students with their loan counts
-  const { data: students } = await supabase.from("profiles").select("*").eq("role", "student").order("full_name")
+  const students = await prisma.user.findMany({
+    where: { role: "STUDENT" },
+    orderBy: { name: "asc" }
+  })
 
-  return <AdminStudents profile={profile} students={students || []} />
+  return <AdminStudents profile={user} students={students} />
 }

@@ -1,25 +1,22 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
 import { MaterialCatalog } from "@/components/student/material-catalog"
 
 export default async function MaterialsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile || profile.role !== "student") {
+  if (user.role !== "STUDENT") {
     redirect("/dashboard")
   }
 
-  const { data: materials } = await supabase.from("materials").select("*").order("name")
+  const materials = await prisma.material.findMany({
+    orderBy: { name: "asc" }
+  })
 
-  return <MaterialCatalog materials={materials || []} profile={profile} />
+  return <MaterialCatalog materials={materials} profile={user} />
 }

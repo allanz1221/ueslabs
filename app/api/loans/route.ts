@@ -1,13 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
@@ -25,43 +22,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Las fechas son requeridas" }, { status: 400 })
     }
 
-    // Obtener perfil para leer programa
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-    // Create loan
-    const { data: loan, error: loanError } = await supabase
-      .from("loans")
-      .insert({
-        student_id: user.id,
-        expected_pickup_date: pickupDate,
-        expected_return_date: returnDate,
+    // Create loan using Prisma
+    const loan = await prisma.loan.create({
+      data: {
+        studentId: user.id,
+        expectedPickupDate: new Date(pickupDate),
+        expectedReturnDate: new Date(returnDate),
         notes: notes || null,
         status: "pending",
-        program: profile?.program ?? null,
-      })
-      .select()
-      .single()
-
-    if (loanError) {
-      console.error("Error creating loan:", loanError)
-      return NextResponse.json({ error: "Error al crear el préstamo" }, { status: 500 })
-    }
+        program: user.program,
+      }
+    })
 
     // Create loan items
     const loanItems = materials.map((item: { materialId: string; quantity: number }) => ({
-      loan_id: loan.id,
-      material_id: item.materialId,
+      loanId: loan.id,
+      materialId: item.materialId,
       quantity: item.quantity,
     }))
 
-    const { error: itemsError } = await supabase.from("loan_items").insert(loanItems)
-
-    if (itemsError) {
-      console.error("Error creating loan items:", itemsError)
-      // Rollback: delete the loan
-      await supabase.from("loans").delete().eq("id", loan.id)
-      return NextResponse.json({ error: "Error al crear los items del préstamo" }, { status: 500 })
-    }
+    await prisma.loanItem.createMany({
+      data: loanItems
+    })
 
     return NextResponse.json({ success: true, loanId: loan.id })
   } catch (error) {

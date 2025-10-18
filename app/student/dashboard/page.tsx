@@ -1,39 +1,38 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
 import { StudentDashboard } from "@/components/student/student-dashboard"
+import { prisma } from "@/lib/prisma"
 
 export default async function StudentDashboardPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile || profile.role !== "student") {
+  if (user.role !== "STUDENT") {
     redirect("/dashboard")
   }
 
   // Get student's recent loans
-  const { data: loans } = await supabase
-    .from("loans")
-    .select(
-      `
-      *,
-      loan_items (
-        *,
-        material:materials (*)
-      )
-    `,
-    )
-    .eq("student_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5)
+  const loans = await prisma.loan.findMany({
+    where: { studentId: user.id },
+    include: {
+      loanItems: {
+        include: {
+          material: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5
+  })
 
-  return <StudentDashboard profile={profile} recentLoans={loans || []} />
+  return <StudentDashboard profile={user} recentLoans={loans} />
 }

@@ -1,40 +1,46 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
 import { AdminReports } from "@/components/admin/admin-reports"
 
 export default async function AdminReportsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile || profile.role !== "admin") {
+  if (user.role !== "ADMIN" && user.role !== "LAB_MANAGER") {
     redirect("/dashboard")
   }
 
   // Get statistics for reports
-  const { data: loans } = await supabase
-    .from("loans")
-    .select(
-      `
-      *,
-      student:profiles!loans_student_id_fkey (*),
-      loan_items (
-        *,
-        material:materials (*)
-      )
-    `,
-    )
-    .order("created_at", { ascending: false })
+  const loans = await prisma.loan.findMany({
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          studentId: true,
+        }
+      },
+      loanItems: {
+        include: {
+          material: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  })
 
-  const { data: materials } = await supabase.from("materials").select("*")
+  const materials = await prisma.material.findMany()
 
-  return <AdminReports profile={profile} loans={loans || []} materials={materials || []} />
+  return <AdminReports profile={user} loans={loans} materials={materials} />
 }

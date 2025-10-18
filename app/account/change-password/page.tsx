@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 
 export default function ChangePasswordPage() {
+  const { data: session } = useSession()
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -18,10 +19,30 @@ export default function ChangePasswordPage() {
     setMessage(null)
     setError(null)
     setLoading(true)
+    
+    if (!session?.user?.email) {
+      setError("No estás autenticado")
+      setLoading(false)
+      return
+    }
+
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.updateUser({ password })
-      if (error) throw error
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: session.user.email,
+          newPassword: password,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Error al actualizar la contraseña")
+      }
+
       setMessage("Contraseña actualizada correctamente")
       setPassword("")
     } catch (err) {

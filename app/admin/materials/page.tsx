@@ -1,26 +1,23 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
 import { AdminMaterials } from "@/components/admin/admin-materials"
 
 export default async function AdminMaterialsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-  if (!profile || profile.role !== "admin") {
+  if (user.role !== "ADMIN" && user.role !== "LAB_MANAGER") {
     redirect("/dashboard")
   }
 
   // Get all materials
-  const { data: materials } = await supabase.from("materials").select("*").order("name")
+  const materials = await prisma.material.findMany({
+    orderBy: { name: "asc" }
+  })
 
-  return <AdminMaterials profile={profile} materials={materials || []} />
+  return <AdminMaterials profile={user} materials={materials} />
 }
