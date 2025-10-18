@@ -1,6 +1,7 @@
-import { getCurrentUser } from "@/lib/auth-server"
 import { redirect } from "next/navigation"
-import AdminUsers from "@/components/admin/admin-users"
+import { getCurrentUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
+import { AdminUsers } from "@/components/admin/admin-users"
 
 export default async function AdminUsersPage() {
   const user = await getCurrentUser()
@@ -10,8 +11,12 @@ export default async function AdminUsersPage() {
   }
 
   if (user.role !== "ADMIN") {
-    redirect("/student/dashboard")
+    redirect("/dashboard")
   }
 
-  return <AdminUsers />
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+  })
+
+  return <AdminUsers initialUsers={users} />
 }

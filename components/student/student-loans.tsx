@@ -1,6 +1,6 @@
 "use client"
 
-import type { Profile } from "@/lib/types"
+import type { User, Loan, LoanItem, Material } from "@prisma/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,9 +9,15 @@ import { StudentNav } from "./student-nav"
 import { Clock, CheckCircle2, XCircle, Package, AlertCircle, Calendar } from "lucide-react"
 import Link from "next/link"
 
+type LoanWithDetails = Loan & {
+  items: (LoanItem & {
+    material: Material
+  })[]
+}
+
 interface StudentLoansProps {
-  profile: Profile
-  loans: any[]
+  profile: User
+  loans: LoanWithDetails[]
 }
 
 export function StudentLoans({ profile, loans }: StudentLoansProps) {
@@ -72,7 +78,7 @@ export function StudentLoans({ profile, loans }: StudentLoansProps) {
   )
 }
 
-function LoansList({ loans }: { loans: any[] }) {
+function LoansList({ loans }: { loans: LoanWithDetails[] }) {
   if (loans.length === 0) {
     return (
       <Card>
@@ -97,7 +103,7 @@ function LoansList({ loans }: { loans: any[] }) {
                   <LoanStatusBadge status={loan.status} />
                 </CardTitle>
                 <CardDescription>
-                  Solicitado el {new Date(loan.request_date).toLocaleDateString("es-ES")}
+                  Solicitado el {new Date(loan.requestDate).toLocaleDateString("es-ES")}
                 </CardDescription>
               </div>
             </div>
@@ -106,7 +112,7 @@ function LoansList({ loans }: { loans: any[] }) {
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Materiales solicitados:</h4>
               <div className="space-y-1">
-                {loan.loan_items?.map((item: any) => (
+                {loan.items?.map((item) => (
                   <div key={item.id} className="flex items-center justify-between text-sm">
                     <span>{item.material?.name}</span>
                     <Badge variant="outline">Cantidad: {item.quantity}</Badge>
@@ -121,7 +127,7 @@ function LoansList({ loans }: { loans: any[] }) {
                   <Calendar className="h-4 w-4" />
                   <span>Fecha de recogida esperada</span>
                 </div>
-                <p className="text-sm font-medium">{new Date(loan.expected_pickup_date).toLocaleDateString("es-ES")}</p>
+                <p className="text-sm font-medium">{new Date(loan.expectedPickupDate).toLocaleDateString("es-ES")}</p>
               </div>
 
               <div className="space-y-1">
@@ -129,7 +135,7 @@ function LoansList({ loans }: { loans: any[] }) {
                   <Calendar className="h-4 w-4" />
                   <span>Fecha de devolución esperada</span>
                 </div>
-                <p className="text-sm font-medium">{new Date(loan.expected_return_date).toLocaleDateString("es-ES")}</p>
+                <p className="text-sm font-medium">{new Date(loan.expectedReturnDate).toLocaleDateString("es-ES")}</p>
               </div>
             </div>
 
@@ -140,10 +146,10 @@ function LoansList({ loans }: { loans: any[] }) {
               </div>
             )}
 
-            {loan.admin_notes && (
+            {loan.adminNotes && (
               <div className="space-y-1 rounded-lg bg-muted p-3">
                 <p className="text-sm font-medium">Notas del administrador:</p>
-                <p className="text-sm text-muted-foreground">{loan.admin_notes}</p>
+                <p className="text-sm text-muted-foreground">{loan.adminNotes}</p>
               </div>
             )}
           </CardContent>

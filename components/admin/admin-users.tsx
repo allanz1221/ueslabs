@@ -20,14 +20,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, UserPlus, Download, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Profile } from "@/lib/types"
+import { User, UserRole } from "@prisma/client"
 import { updateUserRole } from "@/app/actions/users"
 
-export default function AdminUsers() {
-  const [users, setUsers] = useState<Profile[]>([])
-  const [loading, setLoading] = useState(true)
+interface AdminUsersProps {
+  initialUsers: User[]
+}
+
+export function AdminUsers({ initialUsers }: AdminUsersProps) {
+  const [users, setUsers] = useState<User[]>(initialUsers)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
-  const supabase = createBrowserClient()
   const { toast } = useToast()
 
   // Form states
@@ -37,28 +40,6 @@ export default function AdminUsers() {
   const [role, setRole] = useState<"student" | "admin" | "lab_manager" | "professor">("student")
   const [program, setProgram] = useState<"mecatronica" | "manufactura" | "">("")
   const [csvFile, setCsvFile] = useState<File | null>(null)
-
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
-  async function fetchUsers() {
-    try {
-      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
-
-      if (error) throw error
-      setUsers(data || [])
-    } catch (error) {
-      console.error("Error fetching users:", error)
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los usuarios",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handleAddUser(e: React.FormEvent) {
     e.preventDefault()
@@ -134,7 +115,7 @@ export default function AdminUsers() {
     }
   }
 
-  async function handleRoleChange(userId: string, newRole: any) {
+  async function handleRoleChange(userId: string, newRole: UserRole) {
     try {
       await updateUserRole(userId, newRole)
 
@@ -142,6 +123,11 @@ export default function AdminUsers() {
         title: "Éxito",
         description: "Rol actualizado correctamente",
       })
+
+      // Optimistically update UI
+      setUsers((prevUsers) =>
+        prevUsers.map((user) => (user.id === userId ? { ...user, role: newRole } : user)),
+      )
     } catch (error) {
       console.error("Error updating role:", error)
       toast({
@@ -169,17 +155,6 @@ export default function AdminUsers() {
     a.download = "plantilla_usuarios.csv"
     a.click()
     window.URL.revokeObjectURL(url)
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando usuarios...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -256,10 +231,10 @@ export default function AdminUsers() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="student">Estudiante</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="lab_manager">Responsable de Laboratorio</SelectItem>
-                      <SelectItem value="professor">Profesor</SelectItem>
+                      <SelectItem value={UserRole.STUDENT}>Estudiante</SelectItem>
+                      <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
+                      <SelectItem value={UserRole.LAB_MANAGER}>Responsable de Laboratorio</SelectItem>
+                      <SelectItem value={UserRole.PROFESSOR}>Profesor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -293,8 +268,10 @@ export default function AdminUsers() {
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">Todos ({users.length})</TabsTrigger>
-          <TabsTrigger value="students">Estudiantes ({users.filter((u) => u.role === "student").length})</TabsTrigger>
-          <TabsTrigger value="admins">Administradores ({users.filter((u) => u.role === "admin").length})</TabsTrigger>
+          <TabsTrigger value="students">
+            Estudiantes ({users.filter((u) => u.role === UserRole.STUDENT).length})
+          </TabsTrigger>
+          <TabsTrigger value="admins">Administradores ({users.filter((u) => u.role === UserRole.ADMIN).length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -302,11 +279,11 @@ export default function AdminUsers() {
         </TabsContent>
 
         <TabsContent value="students" className="space-y-4">
-          <UsersList users={users.filter((u) => u.role === "student")} onRoleChange={handleRoleChange} />
+          <UsersList users={users.filter((u) => u.role === UserRole.STUDENT)} onRoleChange={handleRoleChange} />
         </TabsContent>
 
         <TabsContent value="admins" className="space-y-4">
-          <UsersList users={users.filter((u) => u.role === "admin")} onRoleChange={handleRoleChange} />
+          <UsersList users={users.filter((u) => u.role === UserRole.ADMIN)} onRoleChange={handleRoleChange} />
         </TabsContent>
       </Tabs>
     </div>
@@ -317,8 +294,8 @@ function UsersList({
   users,
   onRoleChange,
 }: {
-  users: Profile[],
-  onRoleChange: (userId: string, newRole: "student" | "admin" | "lab_manager" | "professor") => void
+  users: User[]
+  onRoleChange: (userId: string, newRole: UserRole) => void
 }) {
   if (users.length === 0) {
     return (
@@ -338,8 +315,8 @@ function UsersList({
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  {user.full_name}
-                  {user.role === "admin" && <Shield className="h-4 w-4 text-primary" />}
+                  {user.name}
+                  {user.role === UserRole.ADMIN && <Shield className="h-4 w-4 text-primary" />}
                 </CardTitle>
                 <CardDescription>{user.email}</CardDescription>
               </div>
@@ -348,17 +325,17 @@ function UsersList({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="student">Estudiante</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="lab_manager">Responsable de Laboratorio</SelectItem>
-                  <SelectItem value="professor">Profesor</SelectItem>
+                  <SelectItem value={UserRole.STUDENT}>Estudiante</SelectItem>
+                  <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
+                  <SelectItem value={UserRole.LAB_MANAGER}>Responsable de Laboratorio</SelectItem>
+                  <SelectItem value={UserRole.PROFESSOR}>Profesor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </CardHeader>
-          {user.student_id && (
+          {user.studentId && (
             <CardContent>
-              <p className="text-sm text-muted-foreground">Matrícula: {user.student_id}</p>
+              <p className="text-sm text-muted-foreground">Matrícula: {user.studentId}</p>
             </CardContent>
           )}
         </Card>

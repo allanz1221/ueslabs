@@ -21,13 +21,20 @@ import { Clock, CheckCircle2, XCircle, Package, AlertCircle, Calendar, User } fr
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
+type LoanWithDetails = Loan & {
+  student: User
+  items: (LoanItem & {
+    material: Material
+  })[]
+}
+
 interface AdminLoansProps {
-  profile: Profile
-  loans: any[]
+  profile: User
+  loans: LoanWithDetails[]
 }
 
 export function AdminLoans({ profile, loans }: AdminLoansProps) {
-  const [selectedLoan, setSelectedLoan] = useState<any>(null)
+  const [selectedLoan, setSelectedLoan] = useState<LoanWithDetails | null>(null)
   const [adminNotes, setAdminNotes] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const router = useRouter()
@@ -124,7 +131,7 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
             <DialogHeader>
               <DialogTitle>Gestionar Préstamo #{selectedLoan.id.slice(0, 8)}</DialogTitle>
               <DialogDescription>
-                Estudiante: {selectedLoan.student?.full_name} ({selectedLoan.student?.student_id})
+                Estudiante: {selectedLoan.student?.name} ({selectedLoan.student?.studentId})
               </DialogDescription>
             </DialogHeader>
 
@@ -132,7 +139,7 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
               <div>
                 <h4 className="mb-2 text-sm font-medium">Materiales solicitados:</h4>
                 <div className="space-y-1">
-                  {selectedLoan.loan_items?.map((item: any) => (
+                  {selectedLoan.items?.map((item) => (
                     <div key={item.id} className="flex items-center justify-between rounded-lg bg-muted p-2 text-sm">
                       <span>{item.material?.name}</span>
                       <Badge variant="outline">Cantidad: {item.quantity}</Badge>
@@ -145,13 +152,13 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
                 <div>
                   <Label className="text-xs text-muted-foreground">Fecha de recogida</Label>
                   <p className="text-sm font-medium">
-                    {new Date(selectedLoan.expected_pickup_date).toLocaleDateString("es-ES")}
+                    {new Date(selectedLoan.expectedPickupDate).toLocaleDateString("es-ES")}
                   </p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Fecha de devolución</Label>
                   <p className="text-sm font-medium">
-                    {new Date(selectedLoan.expected_return_date).toLocaleDateString("es-ES")}
+                    {new Date(selectedLoan.expectedReturnDate).toLocaleDateString("es-ES")}
                   </p>
                 </div>
               </div>
@@ -219,8 +226,8 @@ function LoansList({
   onSelectLoan,
   showActions = false,
 }: {
-  loans: any[]
-  onSelectLoan?: (loan: any) => void
+  loans: LoanWithDetails[]
+  onSelectLoan?: (loan: LoanWithDetails) => void
   showActions?: boolean
 }) {
   if (loans.length === 0) {
@@ -244,12 +251,11 @@ function LoansList({
               <div className="flex-1">
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  {loan.student?.full_name}
+                  {loan.student?.name}
                   <LoanStatusBadge status={loan.status} />
                 </CardTitle>
                 <CardDescription>
-                  ID: {loan.student?.student_id} • Solicitado el{" "}
-                  {new Date(loan.request_date).toLocaleDateString("es-ES")}
+                  ID: {loan.student?.studentId} • Solicitado el {new Date(loan.requestDate).toLocaleDateString("es-ES")}
                 </CardDescription>
               </div>
               {showActions && onSelectLoan && (
@@ -263,7 +269,7 @@ function LoansList({
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Materiales solicitados:</h4>
               <div className="space-y-1">
-                {loan.loan_items?.map((item: any) => (
+                {loan.items?.map((item) => (
                   <div key={item.id} className="flex items-center justify-between text-sm">
                     <span>{item.material?.name}</span>
                     <Badge variant="outline">Cantidad: {item.quantity}</Badge>
@@ -278,7 +284,7 @@ function LoansList({
                   <Calendar className="h-4 w-4" />
                   <span>Recogida esperada</span>
                 </div>
-                <p className="text-sm font-medium">{new Date(loan.expected_pickup_date).toLocaleDateString("es-ES")}</p>
+                <p className="text-sm font-medium">{new Date(loan.expectedPickupDate).toLocaleDateString("es-ES")}</p>
               </div>
 
               <div className="space-y-1">
@@ -286,7 +292,7 @@ function LoansList({
                   <Calendar className="h-4 w-4" />
                   <span>Devolución esperada</span>
                 </div>
-                <p className="text-sm font-medium">{new Date(loan.expected_return_date).toLocaleDateString("es-ES")}</p>
+                <p className="text-sm font-medium">{new Date(loan.expectedReturnDate).toLocaleDateString("es-ES")}</p>
               </div>
             </div>
 
@@ -297,10 +303,10 @@ function LoansList({
               </div>
             )}
 
-            {loan.admin_notes && (
+            {loan.adminNotes && (
               <div className="space-y-1 rounded-lg bg-muted p-3">
                 <p className="text-sm font-medium">Notas del administrador:</p>
-                <p className="text-sm text-muted-foreground">{loan.admin_notes}</p>
+                <p className="text-sm text-muted-foreground">{loan.adminNotes}</p>
               </div>
             )}
           </CardContent>
