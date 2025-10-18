@@ -18,7 +18,7 @@ export default async function StudentHistoryPage() {
   const loans = await prisma.loan.findMany({
     where: { studentId: user.id },
     include: {
-      loanItems: {
+      items: {
         include: {
           material: {
             select: {
