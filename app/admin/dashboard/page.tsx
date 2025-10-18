@@ -34,7 +34,7 @@ export default async function AdminDashboardPage() {
           studentId: true,
         }
       },
-      loanItems: {
+      items: {
         include: {
           material: {
             select: {
