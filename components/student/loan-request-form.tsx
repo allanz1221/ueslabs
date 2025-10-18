@@ -16,8 +16,8 @@ import { CalendarIcon, Trash2, Plus, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useRouter, usePathname } from "next/navigation"
+import { createLoanRequest } from "@/app/actions/loans"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface LoanRequestFormProps {
@@ -107,38 +107,15 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
 
     setIsSubmitting(true)
 
+    const formData = new FormData()
+    formData.append("pickupDate", pickupDate.toISOString())
+    formData.append("returnDate", returnDate.toISOString())
+    formData.append("notes", notes)
+    formData.append("selectedMaterials", JSON.stringify(selectedMaterials))
+
     try {
-      const supabase = createClient()
-
-      // Create loan
-      const { data: loan, error: loanError } = await supabase
-        .from("loans")
-        .insert({
-          student_id: profile.id,
-          expected_pickup_date: pickupDate.toISOString(),
-          expected_return_date: returnDate.toISOString(),
-          notes: notes || null,
-          status: "pending",
-          program: profile.program ?? null,
-        })
-        .select()
-        .single()
-
-      if (loanError) throw loanError
-
-      // Create loan items
-      const loanItems = selectedMaterials.map((item) => ({
-        loan_id: loan.id,
-        material_id: item.materialId,
-        quantity: item.quantity,
-      }))
-
-      const { error: itemsError } = await supabase.from("loan_items").insert(loanItems)
-
-      if (itemsError) throw itemsError
-
+      await createLoanRequest(formData)
       router.push("/student/loans")
-      router.refresh()
     } catch (err) {
       console.error("Error creating loan:", err)
       setError(err instanceof Error ? err.message : "Error al crear la solicitud")

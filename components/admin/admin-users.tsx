@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -21,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, UserPlus, Download, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Profile } from "@/lib/types"
+import { updateUserRole } from "@/app/actions/users"
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<Profile[]>([])
@@ -134,18 +134,14 @@ export default function AdminUsers() {
     }
   }
 
-  async function handleRoleChange(userId: string, newRole: "student" | "admin") {
+  async function handleRoleChange(userId: string, newRole: any) {
     try {
-      const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId)
-
-      if (error) throw error
+      await updateUserRole(userId, newRole)
 
       toast({
         title: "Éxito",
         description: "Rol actualizado correctamente",
       })
-
-      fetchUsers()
     } catch (error) {
       console.error("Error updating role:", error)
       toast({
@@ -321,8 +317,8 @@ function UsersList({
   users,
   onRoleChange,
 }: {
-  users: Profile[]
-  onRoleChange: (userId: string, role: "student" | "admin") => void
+  users: Profile[],
+  onRoleChange: (userId: string, newRole: "student" | "admin" | "lab_manager" | "professor") => void
 }) {
   if (users.length === 0) {
     return (
@@ -354,6 +350,8 @@ function UsersList({
                 <SelectContent>
                   <SelectItem value="student">Estudiante</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="lab_manager">Responsable de Laboratorio</SelectItem>
+                  <SelectItem value="professor">Profesor</SelectItem>
                 </SelectContent>
               </Select>
             </div>

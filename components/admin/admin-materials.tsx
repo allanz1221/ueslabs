@@ -20,9 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { AdminNav } from "./admin-nav"
-import { Search, Package, MapPin, Plus, Pencil, Trash2, AlertCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { Search, Package, MapPin, Plus, Pencil, Trash2, AlertCircle, Loader2 } from "lucide-react"
+import { addMaterial, updateMaterial, deleteMaterial } from "@/app/actions/materials"
 
 interface AdminMaterialsProps {
   profile: Profile
@@ -35,7 +34,6 @@ export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
-  const router = useRouter()
 
   const categories = Array.from(new Set(materials.map((m) => m.category)))
 
@@ -56,12 +54,7 @@ export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
     if (!confirm("¿Estás seguro de que deseas eliminar este material?")) return
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("materials").delete().eq("id", materialId)
-
-      if (error) throw error
-
-      router.refresh()
+      await deleteMaterial(materialId)
     } catch (error) {
       console.error("Error deleting material:", error)
       alert("Error al eliminar el material")
@@ -200,35 +193,21 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     available_quantity: 0,
     location: "",
   })
+  const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     setIsSubmitting(true)
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("materials").insert({
-        ...formData,
-        available_quantity: formData.total_quantity,
-      })
-
-      if (error) throw error
-
+      const form = new FormData(e.target as HTMLFormElement)
+      await addMaterial(form)
       onOpenChange(false)
-      setFormData({
-        name: "",
-        description: "",
-        category: "",
-        total_quantity: 0,
-        available_quantity: 0,
-        location: "",
-      })
-      router.refresh()
     } catch (error) {
       console.error("Error adding material:", error)
-      alert("Error al agregar el material")
+      setError(error instanceof Error ? error.message : "Error al agregar el material")
     } finally {
       setIsSubmitting(false)
     }
@@ -242,7 +221,7 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
           <DialogDescription>Completa la información del material de laboratorio</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -250,6 +229,7 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                 <Input
                   id="name"
                   required
+                  name="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -260,6 +240,7 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                 <Input
                   id="category"
                   required
+                  name="category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 />
@@ -270,6 +251,7 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
               <Label htmlFor="description">Descripción</Label>
               <Textarea
                 id="description"
+                name="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
@@ -284,6 +266,7 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                   type="number"
                   min="0"
                   required
+                  name="total_quantity"
                   value={formData.total_quantity}
                   onChange={(e) => setFormData({ ...formData, total_quantity: Number.parseInt(e.target.value) || 0 })}
                 />
@@ -293,19 +276,25 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                 <Label htmlFor="location">Ubicación</Label>
                 <Input
                   id="location"
+                  name="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 />
               </div>
             </div>
           </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Agregando..." : "Agregar Material"}
+              {isSubmitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Agregando...</>
+              ) : (
+                "Agregar Material"
+              )}
             </Button>
           </DialogFooter>
         </form>
@@ -332,23 +321,20 @@ function EditMaterialDialog({
     location: material.location || "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     setIsSubmitting(true)
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase.from("materials").update(formData).eq("id", material.id)
-
-      if (error) throw error
-
+      const form = new FormData(e.target as HTMLFormElement)
+      await updateMaterial(material.id, form)
       onOpenChange(false)
-      router.refresh()
     } catch (error) {
       console.error("Error updating material:", error)
-      alert("Error al actualizar el material")
+      setError(error instanceof Error ? error.message : "Error al actualizar el material")
     } finally {
       setIsSubmitting(false)
     }
@@ -362,7 +348,7 @@ function EditMaterialDialog({
           <DialogDescription>Actualiza la información del material</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -370,6 +356,7 @@ function EditMaterialDialog({
                 <Input
                   id="edit-name"
                   required
+                  name="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -380,6 +367,7 @@ function EditMaterialDialog({
                 <Input
                   id="edit-category"
                   required
+                  name="category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 />
@@ -390,6 +378,7 @@ function EditMaterialDialog({
               <Label htmlFor="edit-description">Descripción</Label>
               <Textarea
                 id="edit-description"
+                name="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
@@ -404,6 +393,7 @@ function EditMaterialDialog({
                   type="number"
                   min="0"
                   required
+                  name="total_quantity"
                   value={formData.total_quantity}
                   onChange={(e) => setFormData({ ...formData, total_quantity: Number.parseInt(e.target.value) || 0 })}
                 />
@@ -417,6 +407,7 @@ function EditMaterialDialog({
                   min="0"
                   max={formData.total_quantity}
                   required
+                  name="available_quantity"
                   value={formData.available_quantity}
                   onChange={(e) =>
                     setFormData({ ...formData, available_quantity: Number.parseInt(e.target.value) || 0 })
@@ -428,19 +419,25 @@ function EditMaterialDialog({
                 <Label htmlFor="edit-location">Ubicación</Label>
                 <Input
                   id="edit-location"
+                  name="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 />
               </div>
             </div>
           </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+              {isSubmitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
+              ) : (
+                "Guardar Cambios"
+              )}
             </Button>
           </DialogFooter>
         </form>

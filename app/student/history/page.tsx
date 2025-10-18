@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth-server"
+import { LoanStatus } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { StudentHistory } from "@/components/student/student-history"
 
@@ -16,7 +17,12 @@ export default async function StudentHistoryPage() {
 
   // Get all student's loans
   const loans = await prisma.loan.findMany({
-    where: { studentId: user.id },
+    where: { 
+      studentId: user.id,
+      status: {
+        in: [LoanStatus.RETURNED, LoanStatus.REJECTED, LoanStatus.OVERDUE]
+      }
+    },
     include: {
       items: {
         include: {
