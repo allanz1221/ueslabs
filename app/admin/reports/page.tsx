@@ -25,7 +25,7 @@ export default async function AdminReportsPage() {
           studentId: true,
         }
       },
-      loanItems: {
+      items: {
         include: {
           material: {
             select: {
