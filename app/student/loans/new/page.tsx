@@ -1,10 +1,10 @@
-import { getProfile } from "@/lib/auth-server";
+import { getCurrentUser } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import { LoanRequestForm } from "@/components/student/loan-request-form";
 import { prisma } from "@/lib/prisma";
 
 export default async function NewLoanPage() {
-  const profile = await getProfile();
+  const profile = await getCurrentUser();
 
   if (!profile) {
     redirect("/auth/login");
