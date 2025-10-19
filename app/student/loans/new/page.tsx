@@ -1,23 +1,26 @@
-import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth-server"
-import { prisma } from "@/lib/prisma"
-import { LoanRequestForm } from "@/components/student/loan-request-form"
+import { getProfile } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
+import { LoanRequestForm } from "@/components/student/loan-request-form";
+import { prisma } from "@/lib/prisma";
 
 export default async function NewLoanPage() {
-  const user = await getCurrentUser()
+  const profile = await getProfile();
 
-  if (!user) {
-    redirect("/auth/login")
+  if (!profile) {
+    redirect("/auth/login");
   }
 
-  if (user.role !== "STUDENT") {
-    redirect("/dashboard")
+  if (profile.role !== "student") {
+    redirect("/dashboard");
   }
 
-  // Get all materials for the form
   const materials = await prisma.material.findMany({
-    orderBy: { name: "asc" }
-  })
+    where: {
+      available_quantity: {
+        gt: 0,
+      },
+    },
+  });
 
-  return <LoanRequestForm profile={user} materials={materials} />
+  return <LoanRequestForm profile={profile} materials={materials} />;
 }

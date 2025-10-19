@@ -87,8 +87,8 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
       return
     }
 
-    if (returnDate <= pickupDate) {
-      setError("La fecha de devolución debe ser posterior a la fecha de recogida")
+    if (returnDate < pickupDate) {
+      setError("La fecha de devolución debe ser posterior o igual a la fecha de recogida")
       return
     }
 
@@ -263,7 +263,7 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                           mode="single"
                           selected={returnDate}
                           onSelect={setReturnDate}
-                          disabled={(date) => date < new Date() || (pickupDate && date <= pickupDate)}
+                          disabled={(date) => date < new Date() || (pickupDate && date < pickupDate)}
                           initialFocus
                         />
                       </PopoverContent>
