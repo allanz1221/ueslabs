@@ -1,128 +1,157 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import type { Profile, Material } from "@/lib/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { StudentNav } from "./student-nav"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Trash2, Plus, Loader2 } from "lucide-react"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
-import { cn } from "@/lib/utils"
-import { useRouter, usePathname } from "next/navigation"
-import { createLoanRequest } from "@/components/student/loans"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect } from "react";
+import type { Profile, Material } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { StudentNav } from "./student-nav";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CalendarIcon, Trash2, Plus, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { useRouter, usePathname } from "next/navigation";
+import { createLoanRequest } from "@/components/student/loans";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface LoanRequestFormProps {
-  profile: Profile
-  materials: Material[]
+  profile: Profile;
+  materials: Material[];
 }
 
 interface SelectedMaterial {
-  materialId: string
-  quantity: number
+  materialId: string;
+  quantity: number;
 }
 
 export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
-  const [selectedMaterials, setSelectedMaterials] = useState<SelectedMaterial[]>([])
-  const [pickupDate, setPickupDate] = useState<Date>()
-  const [returnDate, setReturnDate] = useState<Date>()
-  const [notes, setNotes] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const [selectedMaterials, setSelectedMaterials] = useState<
+    SelectedMaterial[]
+  >([]);
+  const [pickupDate, setPickupDate] = useState<Date>();
+  const [returnDate, setReturnDate] = useState<Date>();
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Load selected materials from session storage
   useEffect(() => {
-    const stored = sessionStorage.getItem("selectedMaterials")
+    const stored = sessionStorage.getItem("selectedMaterials");
     if (stored) {
       try {
-        const parsed = JSON.parse(stored)
-        setSelectedMaterials(parsed)
-        sessionStorage.removeItem("selectedMaterials")
+        const parsed = JSON.parse(stored);
+        setSelectedMaterials(parsed);
+        sessionStorage.removeItem("selectedMaterials");
       } catch (e) {
-        console.error("Error parsing selected materials:", e)
+        console.error("Error parsing selected materials:", e);
       }
     }
-  }, [])
+  }, []);
 
   const addMaterial = () => {
-    setSelectedMaterials([...selectedMaterials, { materialId: "", quantity: 1 }])
-  }
+    setSelectedMaterials([
+      ...selectedMaterials,
+      { materialId: "", quantity: 1 },
+    ]);
+  };
 
   const removeMaterial = (index: number) => {
-    setSelectedMaterials(selectedMaterials.filter((_, i) => i !== index))
-  }
+    setSelectedMaterials(selectedMaterials.filter((_, i) => i !== index));
+  };
 
-  const updateMaterial = (index: number, field: keyof SelectedMaterial, value: string | number) => {
-    const updated = [...selectedMaterials]
-    updated[index] = { ...updated[index], [field]: value }
-    setSelectedMaterials(updated)
-  }
+  const updateMaterial = (
+    index: number,
+    field: keyof SelectedMaterial,
+    value: string | number,
+  ) => {
+    const updated = [...selectedMaterials];
+    updated[index] = { ...updated[index], [field]: value };
+    setSelectedMaterials(updated);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
 
     // Validation
     if (selectedMaterials.length === 0) {
-      setError("Debes seleccionar al menos un material")
-      return
+      setError("Debes seleccionar al menos un material");
+      return;
     }
 
     if (selectedMaterials.some((m) => !m.materialId)) {
-      setError("Todos los materiales deben estar seleccionados")
-      return
+      setError("Todos los materiales deben estar seleccionados");
+      return;
     }
 
     if (!pickupDate || !returnDate) {
-      setError("Debes seleccionar las fechas de recogida y devolución")
-      return
+      setError("Debes seleccionar las fechas de recogida y devolución");
+      return;
     }
 
     if (returnDate < pickupDate) {
-      setError("La fecha de devolución debe ser posterior o igual a la fecha de recogida")
-      return
+      setError(
+        "La fecha de devolución debe ser posterior o igual a la fecha de recogida",
+      );
+      return;
     }
 
     // Check availability
     for (const item of selectedMaterials) {
-      const material = materials.find((m) => m.id === item.materialId)
+      const material = materials.find((m) => m.id === item.materialId);
       if (!material) {
-        setError("Material no encontrado")
-        return
+        setError("Material no encontrado");
+        return;
       }
-      if (item.quantity > material.available_quantity) {
-        setError(`No hay suficiente cantidad disponible de ${material.name}`)
-        return
+      if (item.quantity > material.availableQuantity) {
+        setError(`No hay suficiente cantidad disponible de ${material.name}`);
+        return;
       }
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
-    const formData = new FormData()
-    formData.append("pickupDate", pickupDate.toISOString())
-    formData.append("returnDate", returnDate.toISOString())
-    formData.append("notes", notes)
-    formData.append("selectedMaterials", JSON.stringify(selectedMaterials))
+    const formData = new FormData();
+    formData.append("pickupDate", pickupDate.toISOString());
+    formData.append("returnDate", returnDate.toISOString());
+    formData.append("notes", notes);
+    formData.append("selectedMaterials", JSON.stringify(selectedMaterials));
 
     try {
-      await createLoanRequest(formData)
-      router.push("/student/loans")
+      await createLoanRequest(formData);
+      router.push("/student/loans");
     } catch (err) {
-      console.error("Error creating loan:", err)
-      setError(err instanceof Error ? err.message : "Error al crear la solicitud")
+      console.error("Error creating loan:", err);
+      setError(
+        err instanceof Error ? err.message : "Error al crear la solicitud",
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -132,20 +161,29 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
         <div className="container mx-auto max-w-3xl px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Nueva Solicitud de Préstamo</h1>
-            <p className="text-muted-foreground">Completa el formulario para solicitar materiales</p>
+            <p className="text-muted-foreground">
+              Completa el formulario para solicitar materiales
+            </p>
           </div>
 
           <form onSubmit={handleSubmit}>
             <Card>
               <CardHeader>
                 <CardTitle>Detalles del Préstamo</CardTitle>
-                <CardDescription>Selecciona los materiales y las fechas de tu préstamo</CardDescription>
+                <CardDescription>
+                  Selecciona los materiales y las fechas de tu préstamo
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>Materiales Solicitados</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addMaterial}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addMaterial}
+                    >
                       <Plus className="mr-2 h-4 w-4" />
                       Agregar Material
                     </Button>
@@ -153,7 +191,9 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
 
                   {selectedMaterials.length === 0 ? (
                     <div className="rounded-lg border border-dashed p-8 text-center">
-                      <p className="text-sm text-muted-foreground">No hay materiales seleccionados</p>
+                      <p className="text-sm text-muted-foreground">
+                        No hay materiales seleccionados
+                      </p>
                       <Button
                         type="button"
                         variant="outline"
@@ -167,21 +207,30 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                   ) : (
                     <div className="space-y-3">
                       {selectedMaterials.map((item, index) => {
-                        const material = materials.find((m) => m.id === item.materialId)
+                        const material = materials.find(
+                          (m) => m.id === item.materialId,
+                        );
                         return (
                           <div key={index} className="flex gap-2">
                             <div className="flex-1">
                               <Select
                                 value={item.materialId}
-                                onValueChange={(value) => updateMaterial(index, "materialId", value)}
+                                onValueChange={(value) =>
+                                  updateMaterial(index, "materialId", value)
+                                }
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Selecciona un material" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {materials.map((mat) => (
-                                    <SelectItem key={mat.id} value={mat.id} disabled={mat.available_quantity === 0}>
-                                      {mat.name} - Disponibles: {mat.available_quantity}
+                                    <SelectItem
+                                      key={mat.id}
+                                      value={mat.id}
+                                      disabled={mat.availableQuantity === 0}
+                                    >
+                                      {mat.name} - Disponibles:{" "}
+                                      {mat.availableQuantity}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -191,10 +240,14 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                               <Input
                                 type="number"
                                 min="1"
-                                max={material?.available_quantity || 1}
+                                max={material?.availableQuantity || 1}
                                 value={item.quantity}
                                 onChange={(e) =>
-                                  updateMaterial(index, "quantity", Number.parseInt(e.target.value) || 1)
+                                  updateMaterial(
+                                    index,
+                                    "quantity",
+                                    Number.parseInt(e.target.value) || 1,
+                                  )
                                 }
                                 placeholder="Cant."
                               />
@@ -209,7 +262,7 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   )}
@@ -228,7 +281,9 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {pickupDate ? format(pickupDate, "PPP", { locale: es }) : "Selecciona una fecha"}
+                          {pickupDate
+                            ? format(pickupDate, "PPP", { locale: es })
+                            : "Selecciona una fecha"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -255,7 +310,9 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {returnDate ? format(returnDate, "PPP", { locale: es }) : "Selecciona una fecha"}
+                          {returnDate
+                            ? format(returnDate, "PPP", { locale: es })
+                            : "Selecciona una fecha"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -263,7 +320,10 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                           mode="single"
                           selected={returnDate}
                           onSelect={setReturnDate}
-                          disabled={(date) => date < new Date() || (pickupDate && date < pickupDate)}
+                          disabled={(date) =>
+                            date < new Date() ||
+                            (pickupDate ? date < pickupDate : false)
+                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -282,10 +342,18 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                   />
                 </div>
 
-                {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+                {error && (
+                  <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
 
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={isSubmitting} className="flex-1">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -295,7 +363,12 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                       "Enviar Solicitud"
                     )}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.back()}
+                    disabled={isSubmitting}
+                  >
                     Cancelar
                   </Button>
                 </div>
@@ -305,5 +378,5 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
         </div>
       </main>
     </div>
-  )
+  );
 }

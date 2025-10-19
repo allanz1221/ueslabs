@@ -1,25 +1,31 @@
-import { getCurrentUser } from "@/lib/auth-server"
-import { prisma } from "@/lib/prisma"
-import { NextResponse } from "next/server"
+import { getCurrentUser } from "@/lib/auth-server";
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await request.json()
-    const { materials, pickupDate, returnDate, notes } = body
+    const body = await request.json();
+    const { materials, pickupDate, returnDate, notes } = body;
 
     // Validate input
     if (!materials || materials.length === 0) {
-      return NextResponse.json({ error: "Debes seleccionar al menos un material" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Debes seleccionar al menos un material" },
+        { status: 400 },
+      );
     }
 
     if (!pickupDate || !returnDate) {
-      return NextResponse.json({ error: "Las fechas son requeridas" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Las fechas son requeridas" },
+        { status: 400 },
+      );
     }
 
     // Create loan using Prisma
@@ -29,25 +35,30 @@ export async function POST(request: Request) {
         expectedPickupDate: new Date(pickupDate),
         expectedReturnDate: new Date(returnDate),
         notes: notes || null,
-        status: "pending",
+        status: "PENDING",
         program: user.program,
-      }
-    })
+      },
+    });
 
     // Create loan items
-    const loanItems = materials.map((item: { materialId: string; quantity: number }) => ({
-      loanId: loan.id,
-      materialId: item.materialId,
-      quantity: item.quantity,
-    }))
+    const loanItems = materials.map(
+      (item: { materialId: string; quantity: number }) => ({
+        loanId: loan.id,
+        materialId: item.materialId,
+        quantity: item.quantity,
+      }),
+    );
 
     await prisma.loanItem.createMany({
-      data: loanItems
-    })
+      data: loanItems,
+    });
 
-    return NextResponse.json({ success: true, loanId: loan.id })
+    return NextResponse.json({ success: true, loanId: loan.id });
   } catch (error) {
-    console.error("Error in loan creation:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error("Error in loan creation:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 },
+    );
   }
 }

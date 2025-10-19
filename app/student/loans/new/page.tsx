@@ -10,13 +10,13 @@ export default async function NewLoanPage() {
     redirect("/auth/login");
   }
 
-  if (profile.role !== "student") {
+  if (profile.role !== "STUDENT") {
     redirect("/dashboard");
   }
 
   const materials = await prisma.material.findMany({
     where: {
-      available_quantity: {
+      availableQuantity: {
         gt: 0,
       },
     },
