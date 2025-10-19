@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { AdminNav } from "./admin-nav"
 import { Search, Package, MapPin, Plus, Pencil, Trash2, AlertCircle, Loader2 } from "lucide-react"
-import { addMaterial, updateMaterial, deleteMaterial } from "@/app/actions/materials"
+import { addMaterial, updateMaterial, deleteMaterial } from "@/components/student/materials"
 
 interface AdminMaterialsProps {
   profile: Profile

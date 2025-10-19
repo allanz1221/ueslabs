@@ -21,7 +21,7 @@ import { Upload, UserPlus, Download, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Profile } from "@/lib/types"
 import { User, UserRole } from "@prisma/client"
-import { updateUserRole } from "@/app/actions/users"
+import { updateUserRole } from "@/components/admin/users"
 
 interface AdminUsersProps {
   initialUsers: User[]

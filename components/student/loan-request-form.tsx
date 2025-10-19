@@ -17,7 +17,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
-import { createLoanRequest } from "@/app/actions/loans"
+import { createLoanRequest } from "@/components/student/loans"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface LoanRequestFormProps {
