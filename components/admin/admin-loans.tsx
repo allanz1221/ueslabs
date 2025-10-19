@@ -1,13 +1,19 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { Profile } from "@/lib/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { useState } from "react";
+import type { Profile } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,72 +21,129 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { AdminNav } from "./admin-nav"
-import { Clock, CheckCircle2, XCircle, Package, AlertCircle, Calendar, User } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/dialog";
+import { AdminNav } from "./admin-nav";
+import {
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Package,
+  AlertCircle,
+  Calendar,
+  User,
+  Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 
-type LoanWithDetails = Loan & {
-  student: User
-  items: (LoanItem & {
-    material: Material
-  })[]
-}
+type LoanWithDetails = {
+  id: string;
+  studentId: string;
+  program: string | null;
+  requestDate: Date;
+  expectedPickupDate: Date;
+  expectedReturnDate: Date;
+  actualPickupDate: Date | null;
+  actualReturnDate: Date | null;
+  status:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "PICKED_UP"
+    | "RETURNED"
+    | "OVERDUE";
+  notes: string | null;
+  adminNotes: string | null;
+  approvedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  student: {
+    id: string;
+    name: string | null;
+    email: string;
+    studentId: string | null;
+  };
+  items: Array<{
+    id: string;
+    loanId: string;
+    materialId: string;
+    quantity: number;
+    material: {
+      id: string;
+      name: string;
+      description: string | null;
+    };
+  }>;
+};
 
 interface AdminLoansProps {
-  profile: User
-  loans: LoanWithDetails[]
+  profile: Profile;
+  loans: LoanWithDetails[];
 }
 
 export function AdminLoans({ profile, loans }: AdminLoansProps) {
-  const [selectedLoan, setSelectedLoan] = useState<LoanWithDetails | null>(null)
-  const [adminNotes, setAdminNotes] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
-  const router = useRouter()
+  const [selectedLoan, setSelectedLoan] = useState<LoanWithDetails | null>(
+    null,
+  );
+  const [adminNotes, setAdminNotes] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
 
-  const pendingLoans = loans.filter((loan) => loan.status === "pending")
-  const approvedLoans = loans.filter((loan) => loan.status === "approved")
-  const activeLoans = loans.filter((loan) => loan.status === "picked_up")
-  const completedLoans = loans.filter((loan) => loan.status === "returned")
-  const rejectedLoans = loans.filter((loan) => loan.status === "rejected")
+  const pendingLoans = loans.filter((loan) => loan.status === "PENDING");
+  const approvedLoans = loans.filter((loan) => loan.status === "APPROVED");
+  const activeLoans = loans.filter((loan) => loan.status === "PICKED_UP");
+  const completedLoans = loans.filter((loan) => loan.status === "RETURNED");
+  const rejectedLoans = loans.filter((loan) => loan.status === "REJECTED");
 
-  const handleUpdateLoanStatus = async (loanId: string, newStatus: string) => {
-    setIsProcessing(true)
+  const handleUpdateLoanStatus = async (
+    loanId: string,
+    newStatus: "APPROVED" | "REJECTED" | "PICKED_UP" | "RETURNED",
+  ) => {
+    setIsProcessing(true);
     try {
-      const supabase = createClient()
+      const response = await fetch(`/api/loans/${loanId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          adminNotes: adminNotes || null,
+        }),
+      });
 
-      const updateData: any = {
-        status: newStatus,
-        admin_notes: adminNotes || null,
+      if (!response.ok) {
+        throw new Error("Error al actualizar el préstamo");
       }
 
-      if (newStatus === "approved" || newStatus === "rejected") {
-        updateData.approved_by = profile.id
-      }
-
-      if (newStatus === "picked_up") {
-        updateData.actual_pickup_date = new Date().toISOString()
-      }
-
-      if (newStatus === "returned") {
-        updateData.actual_return_date = new Date().toISOString()
-      }
-
-      const { error } = await supabase.from("loans").update(updateData).eq("id", loanId)
-
-      if (error) throw error
-
-      setSelectedLoan(null)
-      setAdminNotes("")
-      router.refresh()
+      setSelectedLoan(null);
+      setAdminNotes("");
+      router.refresh();
     } catch (error) {
-      console.error("Error updating loan:", error)
-      alert("Error al actualizar el préstamo")
+      console.error("Error updating loan:", error);
+      alert("Error al actualizar el préstamo");
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
+
+  const canTransitionTo = (
+    currentStatus: string,
+    newStatus: string,
+  ): boolean => {
+    switch (currentStatus) {
+      case "PENDING":
+        return newStatus === "APPROVED" || newStatus === "REJECTED";
+      case "APPROVED":
+        return newStatus === "PICKED_UP";
+      case "PICKED_UP":
+        return newStatus === "RETURNED";
+      case "REJECTED":
+      case "RETURNED":
+        return false;
+      default:
+        return false;
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -90,57 +153,115 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Gestión de Préstamos</h1>
-            <p className="text-muted-foreground">Revisa y gestiona todas las solicitudes de préstamo</p>
+            <p className="text-muted-foreground">
+              Revisa y gestiona todas las solicitudes de préstamo
+            </p>
           </div>
 
           <Tabs defaultValue="pending" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="pending">Pendientes ({pendingLoans.length})</TabsTrigger>
-              <TabsTrigger value="approved">Aprobados ({approvedLoans.length})</TabsTrigger>
-              <TabsTrigger value="active">Activos ({activeLoans.length})</TabsTrigger>
-              <TabsTrigger value="completed">Completados ({completedLoans.length})</TabsTrigger>
+              <TabsTrigger value="pending">
+                Pendientes ({pendingLoans.length})
+              </TabsTrigger>
+              <TabsTrigger value="approved">
+                Aprobados ({approvedLoans.length})
+              </TabsTrigger>
+              <TabsTrigger value="active">
+                Activos ({activeLoans.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Completados ({completedLoans.length})
+              </TabsTrigger>
+              <TabsTrigger value="rejected">
+                Rechazados ({rejectedLoans.length})
+              </TabsTrigger>
               <TabsTrigger value="all">Todos ({loans.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="pending" className="space-y-4">
-              <LoansList loans={pendingLoans} onSelectLoan={setSelectedLoan} showActions />
+              <LoansList
+                loans={pendingLoans}
+                onSelectLoan={setSelectedLoan}
+                showActions={true}
+                canTransitionTo={canTransitionTo}
+              />
             </TabsContent>
 
             <TabsContent value="approved" className="space-y-4">
-              <LoansList loans={approvedLoans} onSelectLoan={setSelectedLoan} showActions />
+              <LoansList
+                loans={approvedLoans}
+                onSelectLoan={setSelectedLoan}
+                showActions={true}
+                canTransitionTo={canTransitionTo}
+              />
             </TabsContent>
 
             <TabsContent value="active" className="space-y-4">
-              <LoansList loans={activeLoans} onSelectLoan={setSelectedLoan} showActions />
+              <LoansList
+                loans={activeLoans}
+                onSelectLoan={setSelectedLoan}
+                showActions={true}
+                canTransitionTo={canTransitionTo}
+              />
             </TabsContent>
 
             <TabsContent value="completed" className="space-y-4">
-              <LoansList loans={completedLoans} onSelectLoan={setSelectedLoan} />
+              <LoansList
+                loans={completedLoans}
+                onSelectLoan={setSelectedLoan}
+                showActions={false}
+                canTransitionTo={canTransitionTo}
+              />
+            </TabsContent>
+
+            <TabsContent value="rejected" className="space-y-4">
+              <LoansList
+                loans={rejectedLoans}
+                onSelectLoan={setSelectedLoan}
+                showActions={false}
+                canTransitionTo={canTransitionTo}
+              />
             </TabsContent>
 
             <TabsContent value="all" className="space-y-4">
-              <LoansList loans={loans} onSelectLoan={setSelectedLoan} />
+              <LoansList
+                loans={loans}
+                onSelectLoan={setSelectedLoan}
+                showActions={false}
+                canTransitionTo={canTransitionTo}
+              />
             </TabsContent>
           </Tabs>
         </div>
       </main>
 
       {selectedLoan && (
-        <Dialog open={!!selectedLoan} onOpenChange={() => setSelectedLoan(null)}>
+        <Dialog
+          open={!!selectedLoan}
+          onOpenChange={() => setSelectedLoan(null)}
+        >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Gestionar Préstamo #{selectedLoan.id.slice(0, 8)}</DialogTitle>
+              <DialogTitle>
+                Gestionar Préstamo #{selectedLoan.id.slice(0, 8)}
+              </DialogTitle>
               <DialogDescription>
-                Estudiante: {selectedLoan.student?.name} ({selectedLoan.student?.studentId})
+                Estudiante: {selectedLoan.student?.name} (
+                {selectedLoan.student?.studentId})
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div>
-                <h4 className="mb-2 text-sm font-medium">Materiales solicitados:</h4>
+                <h4 className="mb-2 text-sm font-medium">
+                  Materiales solicitados:
+                </h4>
                 <div className="space-y-1">
                   {selectedLoan.items?.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between rounded-lg bg-muted p-2 text-sm">
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-lg bg-muted p-2 text-sm"
+                    >
                       <span>{item.material?.name}</span>
                       <Badge variant="outline">Cantidad: {item.quantity}</Badge>
                     </div>
@@ -150,23 +271,68 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Fecha de recogida</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Fecha de recogida
+                  </Label>
                   <p className="text-sm font-medium">
-                    {new Date(selectedLoan.expectedPickupDate).toLocaleDateString("es-ES")}
+                    {new Date(
+                      selectedLoan.expectedPickupDate,
+                    ).toLocaleDateString("es-ES")}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Fecha de devolución</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Fecha de devolución
+                  </Label>
                   <p className="text-sm font-medium">
-                    {new Date(selectedLoan.expectedReturnDate).toLocaleDateString("es-ES")}
+                    {new Date(
+                      selectedLoan.expectedReturnDate,
+                    ).toLocaleDateString("es-ES")}
                   </p>
                 </div>
               </div>
 
+              {selectedLoan.actualPickupDate && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Fecha real de recogida
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {new Date(selectedLoan.actualPickupDate).toLocaleDateString(
+                      "es-ES",
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {selectedLoan.actualReturnDate && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Fecha real de devolución
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {new Date(selectedLoan.actualReturnDate).toLocaleDateString(
+                      "es-ES",
+                    )}
+                  </p>
+                </div>
+              )}
+
               {selectedLoan.notes && (
                 <div>
-                  <Label className="text-xs text-muted-foreground">Notas del estudiante</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Notas del estudiante
+                  </Label>
                   <p className="text-sm">{selectedLoan.notes}</p>
+                </div>
+              )}
+
+              {selectedLoan.adminNotes && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Notas del administrador
+                  </Label>
+                  <p className="text-sm">{selectedLoan.adminNotes}</p>
                 </div>
               )}
 
@@ -183,34 +349,67 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
             </div>
 
             <DialogFooter className="flex-col gap-2 sm:flex-row">
-              {selectedLoan.status === "pending" && (
+              {selectedLoan.status === "PENDING" && (
                 <>
                   <Button
                     variant="destructive"
-                    onClick={() => handleUpdateLoanStatus(selectedLoan.id, "rejected")}
+                    onClick={() =>
+                      handleUpdateLoanStatus(selectedLoan.id, "REJECTED")
+                    }
                     disabled={isProcessing}
                   >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Rechazar
+                    {isProcessing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <XCircle className="mr-2 h-4 w-4" />
+                    )}
+                    Cancelar
                   </Button>
-                  <Button onClick={() => handleUpdateLoanStatus(selectedLoan.id, "approved")} disabled={isProcessing}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  <Button
+                    onClick={() =>
+                      handleUpdateLoanStatus(selectedLoan.id, "APPROVED")
+                    }
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                    )}
                     Aprobar
                   </Button>
                 </>
               )}
 
-              {selectedLoan.status === "approved" && (
-                <Button onClick={() => handleUpdateLoanStatus(selectedLoan.id, "picked_up")} disabled={isProcessing}>
-                  <Package className="mr-2 h-4 w-4" />
-                  Marcar como Recogido
+              {selectedLoan.status === "APPROVED" && (
+                <Button
+                  onClick={() =>
+                    handleUpdateLoanStatus(selectedLoan.id, "PICKED_UP")
+                  }
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Package className="mr-2 h-4 w-4" />
+                  )}
+                  Marcar como Activo
                 </Button>
               )}
 
-              {selectedLoan.status === "picked_up" && (
-                <Button onClick={() => handleUpdateLoanStatus(selectedLoan.id, "returned")} disabled={isProcessing}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Marcar como Devuelto
+              {selectedLoan.status === "PICKED_UP" && (
+                <Button
+                  onClick={() =>
+                    handleUpdateLoanStatus(selectedLoan.id, "RETURNED")
+                  }
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  )}
+                  Marcar como Completado
                 </Button>
               )}
             </DialogFooter>
@@ -218,28 +417,34 @@ export function AdminLoans({ profile, loans }: AdminLoansProps) {
         </Dialog>
       )}
     </div>
-  )
+  );
+}
+
+interface LoansListProps {
+  loans: LoanWithDetails[];
+  onSelectLoan?: (loan: LoanWithDetails) => void;
+  showActions?: boolean;
+  canTransitionTo: (currentStatus: string, newStatus: string) => boolean;
 }
 
 function LoansList({
   loans,
   onSelectLoan,
   showActions = false,
-}: {
-  loans: LoanWithDetails[]
-  onSelectLoan?: (loan: LoanWithDetails) => void
-  showActions?: boolean
-}) {
+  canTransitionTo,
+}: LoansListProps) {
   if (loans.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Package className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No hay préstamos</h3>
-          <p className="text-sm text-muted-foreground">No se encontraron préstamos en esta categoría</p>
+          <p className="text-sm text-muted-foreground">
+            No se encontraron préstamos en esta categoría
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -255,7 +460,8 @@ function LoansList({
                   <LoanStatusBadge status={loan.status} />
                 </CardTitle>
                 <CardDescription>
-                  ID: {loan.student?.studentId} • Solicitado el {new Date(loan.requestDate).toLocaleDateString("es-ES")}
+                  ID: {loan.student?.studentId} • Solicitado el{" "}
+                  {new Date(loan.requestDate).toLocaleDateString("es-ES")}
                 </CardDescription>
               </div>
               {showActions && onSelectLoan && (
@@ -270,7 +476,10 @@ function LoansList({
               <h4 className="text-sm font-medium">Materiales solicitados:</h4>
               <div className="space-y-1">
                 {loan.items?.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <span>{item.material?.name}</span>
                     <Badge variant="outline">Cantidad: {item.quantity}</Badge>
                   </div>
@@ -284,7 +493,11 @@ function LoansList({
                   <Calendar className="h-4 w-4" />
                   <span>Recogida esperada</span>
                 </div>
-                <p className="text-sm font-medium">{new Date(loan.expectedPickupDate).toLocaleDateString("es-ES")}</p>
+                <p className="text-sm font-medium">
+                  {new Date(loan.expectedPickupDate).toLocaleDateString(
+                    "es-ES",
+                  )}
+                </p>
               </div>
 
               <div className="space-y-1">
@@ -292,7 +505,11 @@ function LoansList({
                   <Calendar className="h-4 w-4" />
                   <span>Devolución esperada</span>
                 </div>
-                <p className="text-sm font-medium">{new Date(loan.expectedReturnDate).toLocaleDateString("es-ES")}</p>
+                <p className="text-sm font-medium">
+                  {new Date(loan.expectedReturnDate).toLocaleDateString(
+                    "es-ES",
+                  )}
+                </p>
               </div>
             </div>
 
@@ -306,33 +523,52 @@ function LoansList({
             {loan.adminNotes && (
               <div className="space-y-1 rounded-lg bg-muted p-3">
                 <p className="text-sm font-medium">Notas del administrador:</p>
-                <p className="text-sm text-muted-foreground">{loan.adminNotes}</p>
+                <p className="text-sm text-muted-foreground">
+                  {loan.adminNotes}
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
       ))}
     </>
-  )
+  );
 }
 
 function LoanStatusBadge({ status }: { status: string }) {
   const statusConfig = {
-    pending: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
-    approved: { label: "Aprobado", variant: "default" as const, icon: CheckCircle2 },
-    rejected: { label: "Rechazado", variant: "destructive" as const, icon: XCircle },
-    picked_up: { label: "Recogido", variant: "default" as const, icon: Package },
-    returned: { label: "Devuelto", variant: "outline" as const, icon: CheckCircle2 },
-    overdue: { label: "Vencido", variant: "destructive" as const, icon: AlertCircle },
-  }
+    PENDING: { label: "Pendiente", variant: "secondary" as const, icon: Clock },
+    APPROVED: {
+      label: "Aprobado",
+      variant: "default" as const,
+      icon: CheckCircle2,
+    },
+    REJECTED: {
+      label: "Cancelado",
+      variant: "destructive" as const,
+      icon: XCircle,
+    },
+    PICKED_UP: { label: "Activo", variant: "default" as const, icon: Package },
+    RETURNED: {
+      label: "Completado",
+      variant: "outline" as const,
+      icon: CheckCircle2,
+    },
+    OVERDUE: {
+      label: "Vencido",
+      variant: "destructive" as const,
+      icon: AlertCircle,
+    },
+  };
 
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
-  const Icon = config.icon
+  const config =
+    statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
+  const Icon = config.icon;
 
   return (
     <Badge variant={config.variant}>
       <Icon className="mr-1 h-3 w-3" />
       {config.label}
     </Badge>
-  )
+  );
 }

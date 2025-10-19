@@ -37,7 +37,7 @@ export function AdminNav({ profile }: AdminNavProps) {
         <div className="flex items-center gap-6">
           <Link href="/admin/dashboard" className="flex items-center gap-2">
             <FlaskConical className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">LabLoan Admin</span>
+            <span className="text-lg font-semibold">App Laboratorio UES Admin</span>
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
             <Button asChild variant="ghost">

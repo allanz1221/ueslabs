@@ -36,7 +36,7 @@ export function StudentNav({ profile }: StudentNavProps) {
         <div className="flex items-center gap-6">
           <Link href="/student/dashboard" className="flex items-center gap-2">
             <FlaskConical className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">LabLoan</span>
+            <span className="text-lg font-semibold">App Laboratorio UES</span>
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
             <Button asChild variant="ghost">

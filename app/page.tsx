@@ -10,7 +10,7 @@ export default function HomePage() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <FlaskConical className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">LabLoan</span>
+            <span className="text-lg font-semibold">App Laboratorio UES</span>
           </div>
           <div className="flex gap-2">
             <Button asChild variant="ghost">

@@ -1,17 +1,17 @@
-import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth-server"
-import { prisma } from "@/lib/prisma"
-import { AdminLoans } from "@/components/admin/admin-loans"
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth-server";
+import { prisma } from "@/lib/prisma";
+import { AdminLoans } from "@/components/admin/admin-loans";
 
 export default async function AdminLoansPage() {
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/auth/login");
   }
 
   if (user.role !== "ADMIN" && user.role !== "LAB_MANAGER") {
-    redirect("/dashboard")
+    redirect("/dashboard");
   }
 
   // Get all loans with details
@@ -23,7 +23,7 @@ export default async function AdminLoansPage() {
           name: true,
           email: true,
           studentId: true,
-        }
+        },
       },
       items: {
         include: {
@@ -32,13 +32,13 @@ export default async function AdminLoansPage() {
               id: true,
               name: true,
               description: true,
-            }
-          }
-        }
-      }
+            },
+          },
+        },
+      },
     },
-    orderBy: { createdAt: "desc" }
-  })
+    orderBy: { createdAt: "desc" },
+  });
 
-  return <AdminLoans profile={user} loans={loans} />
+  return <AdminLoans profile={user} loans={loans} />;
 }
