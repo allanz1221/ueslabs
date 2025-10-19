@@ -50,8 +50,11 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
   const [selectedMaterials, setSelectedMaterials] = useState<
     SelectedMaterial[]
   >([]);
-  const [pickupDate, setPickupDate] = useState<Date>();
-  const [returnDate, setReturnDate] = useState<Date>();
+  // Set default dates to tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const [pickupDate, setPickupDate] = useState<Date>(tomorrow);
+  const [returnDate, setReturnDate] = useState<Date>(tomorrow);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +112,24 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
 
     if (!pickupDate || !returnDate) {
       setError("Debes seleccionar las fechas de recogida y devolución");
+      return;
+    }
+
+    // Check that dates are not today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pickupCheck = new Date(pickupDate);
+    pickupCheck.setHours(0, 0, 0, 0);
+    const returnCheck = new Date(returnDate);
+    returnCheck.setHours(0, 0, 0, 0);
+
+    if (pickupCheck <= today) {
+      setError("La fecha de recogida debe ser posterior a hoy");
+      return;
+    }
+
+    if (returnCheck <= today) {
+      setError("La fecha de devolución debe ser posterior a hoy");
       return;
     }
 
@@ -291,7 +312,13 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                           mode="single"
                           selected={pickupDate}
                           onSelect={setPickupDate}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const dateToCheck = new Date(date);
+                            dateToCheck.setHours(0, 0, 0, 0);
+                            return dateToCheck <= today;
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -320,10 +347,19 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                           mode="single"
                           selected={returnDate}
                           onSelect={setReturnDate}
-                          disabled={(date) =>
-                            date < new Date() ||
-                            (pickupDate ? date < pickupDate : false)
-                          }
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const dateToCheck = new Date(date);
+                            dateToCheck.setHours(0, 0, 0, 0);
+                            const pickupDateCheck = new Date(pickupDate);
+                            pickupDateCheck.setHours(0, 0, 0, 0);
+
+                            return (
+                              dateToCheck <= today ||
+                              dateToCheck < pickupDateCheck
+                            );
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
