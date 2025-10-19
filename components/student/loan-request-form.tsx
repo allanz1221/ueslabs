@@ -50,11 +50,9 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
   const [selectedMaterials, setSelectedMaterials] = useState<
     SelectedMaterial[]
   >([]);
-  // Set default dates to tomorrow
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const [pickupDate, setPickupDate] = useState<Date>(tomorrow);
-  const [returnDate, setReturnDate] = useState<Date>(tomorrow);
+  // Set default dates to today
+  const [pickupDate, setPickupDate] = useState<Date>(new Date());
+  const [returnDate, setReturnDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,13 +121,13 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
     const returnCheck = new Date(returnDate);
     returnCheck.setHours(0, 0, 0, 0);
 
-    if (pickupCheck <= today) {
-      setError("La fecha de recogida debe ser posterior a hoy");
+    if (pickupCheck < today) {
+      setError("La fecha de recogida no puede ser anterior a hoy");
       return;
     }
 
-    if (returnCheck <= today) {
-      setError("La fecha de devolución debe ser posterior a hoy");
+    if (returnCheck < today) {
+      setError("La fecha de devolución no puede ser anterior a hoy");
       return;
     }
 
@@ -317,8 +315,9 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                             today.setHours(0, 0, 0, 0);
                             const dateToCheck = new Date(date);
                             dateToCheck.setHours(0, 0, 0, 0);
-                            return dateToCheck <= today;
+                            return dateToCheck < today;
                           }}
+                          required
                           initialFocus
                         />
                       </PopoverContent>
@@ -356,10 +355,11 @@ export function LoanRequestForm({ profile, materials }: LoanRequestFormProps) {
                             pickupDateCheck.setHours(0, 0, 0, 0);
 
                             return (
-                              dateToCheck <= today ||
+                              dateToCheck < today ||
                               dateToCheck < pickupDateCheck
                             );
                           }}
+                          required
                           initialFocus
                         />
                       </PopoverContent>
