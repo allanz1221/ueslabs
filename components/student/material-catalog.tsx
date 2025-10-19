@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Package, MapPin, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { StudentNav } from "./student-nav"
 
 interface MaterialCatalogProps {
@@ -58,13 +59,12 @@ export function MaterialCatalog({ materials, profile }: MaterialCatalogProps) {
   }
 
   const handleCreateLoan = () => {
-    // Store selected materials in session storage and navigate to loan request page
+    // Store selected materials in session storage before navigating
     const selectedItems = Array.from(selectedMaterials.entries()).map(([materialId, quantity]) => ({
       materialId,
       quantity,
     }))
     sessionStorage.setItem("selectedMaterials", JSON.stringify(selectedItems))
-    router.push("/student/loans/new")
   }
 
   return (
@@ -135,8 +135,8 @@ export function MaterialCatalog({ materials, profile }: MaterialCatalogProps) {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={handleCreateLoan} className="w-full" type="button">
-                  Crear Solicitud de Préstamo
+                <Button asChild onClick={handleCreateLoan} className="w-full">
+                  <Link href="/student/loans/new">Crear Solicitud de Préstamo</Link>
                 </Button>
               </CardFooter>
             </Card>
