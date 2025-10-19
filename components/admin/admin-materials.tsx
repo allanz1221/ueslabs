@@ -401,7 +401,12 @@ function AddMaterialDialog({
                     <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
                   ) : profile.assignedLab === "LAB_ING" ? (
                     <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
-                  ) : null}
+                  ) : (
+                    <>
+                      <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                      <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -604,7 +609,12 @@ function EditMaterialDialog({
                     <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
                   ) : profile.assignedLab === "LAB_ING" ? (
                     <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
-                  ) : null}
+                  ) : (
+                    <>
+                      <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                      <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>

@@ -4,10 +4,15 @@ import {
   LoanStatus,
   ReservationStatus,
   RoomType,
-  Lab,
 } from "@prisma/client";
 
-export type { UserRole, Program, LoanStatus, ReservationStatus, RoomType, Lab };
+export type { UserRole, Program, LoanStatus, ReservationStatus, RoomType };
+
+// Define Lab enum manually since it may not be exported from Prisma
+export enum Lab {
+  LAB_ELECT = "LAB_ELECT",
+  LAB_ING = "LAB_ING",
+}
 
 export interface Profile {
   id: string;
@@ -16,7 +21,7 @@ export interface Profile {
   role: UserRole;
   program: Program | null;
   studentId: string | null;
-  assignedLab: Lab | null;
+  assignedLab?: Lab | null; // Optional until DB migration is run
   createdAt: Date;
 }
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Lab } from "@prisma/client";
+import { Lab } from "@/lib/types";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Name is required"),
