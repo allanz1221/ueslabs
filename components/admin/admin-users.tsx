@@ -38,12 +38,17 @@ import {
   updateUserAssignedLab,
 } from "@/components/admin/users";
 
+// Temporary type until DB migration is run
+type UserWithLab = User & {
+  assignedLab?: Lab | null;
+};
+
 interface AdminUsersProps {
-  initialUsers: User[];
+  initialUsers: UserWithLab[];
 }
 
 export function AdminUsers({ initialUsers }: AdminUsersProps) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<UserWithLab[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -428,7 +433,7 @@ function UsersList({
   onRoleChange,
   onAssignedLabChange,
 }: {
-  users: User[];
+  users: UserWithLab[];
   onRoleChange: (userId: string, newRole: UserRole) => void;
   onAssignedLabChange?: (userId: string, assignedLab: Lab | null) => void;
 }) {

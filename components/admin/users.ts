@@ -22,10 +22,18 @@ export async function updateUserAssignedLab(
   userId: string,
   assignedLab: Lab | null,
 ) {
-  await prisma.user.update({
-    where: { id: userId },
-    data: { assignedLab: assignedLab },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { assignedLab: assignedLab },
+    });
+  } catch (error) {
+    // If assignedLab field doesn't exist yet (before DB migration), ignore the error
+    console.warn("assignedLab field may not exist in database yet:", error);
+    throw new Error(
+      "El campo assignedLab aún no existe en la base de datos. Ejecuta la migración primero.",
+    );
+  }
 
   revalidatePath("/admin/users");
 }
