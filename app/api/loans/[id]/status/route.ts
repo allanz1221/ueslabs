@@ -5,7 +5,7 @@ import { LoanStatus } from "@prisma/client";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const user = await getCurrentUser();
@@ -18,7 +18,7 @@ export async function PATCH(
     if (user.role !== "ADMIN" && user.role !== "LAB_MANAGER") {
       return NextResponse.json(
         { error: "No tienes permisos para realizar esta acción" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -38,26 +38,59 @@ export async function PATCH(
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: "Estado de préstamo inválido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get current loan
+    // Get current loan with material details
     const currentLoan = await prisma.loan.findUnique({
       where: { id: loanId },
+      include: {
+        items: {
+          include: {
+            material: {
+              select: {
+                lab: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!currentLoan) {
       return NextResponse.json(
         { error: "Préstamo no encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
+    }
+
+    // Validate lab manager permissions
+    if (user.role === "LAB_MANAGER") {
+      if (!user.assignedLab) {
+        return NextResponse.json(
+          { error: "No tienes un laboratorio asignado" },
+          { status: 403 },
+        );
+      }
+
+      // Check if all materials in the loan belong to the manager's lab
+      const hasPermission = currentLoan.items.every(
+        (item) => item.material.lab === user.assignedLab,
+      );
+
+      if (!hasPermission) {
+        return NextResponse.json(
+          { error: "No tienes permisos para gestionar este préstamo" },
+          { status: 403 },
+        );
+      }
     }
 
     // Validate state transitions
     const canTransition = (
       currentStatus: LoanStatus,
-      newStatus: LoanStatus
+      newStatus: LoanStatus,
     ): boolean => {
       switch (currentStatus) {
         case "PENDING":
@@ -79,7 +112,7 @@ export async function PATCH(
         {
           error: `No se puede cambiar el estado de ${currentLoan.status} a ${status}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -118,7 +151,7 @@ export async function PATCH(
     console.error("Error updating loan status:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

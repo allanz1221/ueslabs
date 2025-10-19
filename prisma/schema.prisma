@@ -46,6 +46,7 @@ model User {
   program       Program?
   studentId     String?
   password      String?
+  assignedLab   Lab?      // For LAB_MANAGER role
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -54,7 +55,7 @@ model User {
   loans    Loan[]
   reservations Reservation[]
   practiceReports PracticeReport[]
-  
+
   // Relations for approvers
   approvedLoans Loan[] @relation("LoanApprover")
   approvedReservations Reservation[] @relation("ReservationApprover")
@@ -102,6 +103,11 @@ enum RoomType {
   TALLER
 }
 
+enum Lab {
+  LAB_ELECT
+  LAB_ING
+}
+
 model Material {
   id                String   @id @default(cuid())
   name              String
@@ -110,6 +116,7 @@ model Material {
   totalQuantity     Int      @default(0)
   availableQuantity Int      @default(0)
   location          String?
+  lab               Lab?     // Assigned laboratory
   imageUrl          String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

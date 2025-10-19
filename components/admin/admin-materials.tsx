@@ -1,16 +1,28 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import type { Material, Profile } from "@/lib/types"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react";
+import type { Material, Profile } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -18,48 +30,64 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { AdminNav } from "./admin-nav"
-import { Search, Package, MapPin, Plus, Pencil, Trash2, AlertCircle, Loader2 } from "lucide-react"
-import { addMaterial, updateMaterial, deleteMaterial } from "@/components/student/materials"
+} from "@/components/ui/dialog";
+import { AdminNav } from "./admin-nav";
+import {
+  Search,
+  Package,
+  MapPin,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import {
+  addMaterial,
+  updateMaterial,
+  deleteMaterial,
+} from "@/components/student/materials";
 
 interface AdminMaterialsProps {
-  profile: Profile
-  materials: Material[]
+  profile: Profile;
+  materials: Material[];
 }
 
 export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
+    null,
+  );
 
-  const categories = Array.from(new Set(materials.map((m) => m.category)))
+  const categories = Array.from(new Set(materials.map((m) => m.category)));
 
   const filteredMaterials = materials.filter((material) => {
     const matchesSearch =
       material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      material.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === "all" || material.category === categoryFilter
-    return matchesSearch && matchesCategory
-  })
+      material.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all" || material.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const handleEdit = (material: Material) => {
-    setSelectedMaterial(material)
-    setIsEditDialogOpen(true)
-  }
+    setSelectedMaterial(material);
+    setIsEditDialogOpen(true);
+  };
 
   const handleDelete = async (materialId: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este material?")) return
+    if (!confirm("¿Estás seguro de que deseas eliminar este material?")) return;
 
     try {
-      await deleteMaterial(materialId)
+      await deleteMaterial(materialId);
     } catch (error) {
-      console.error("Error deleting material:", error)
-      alert("Error al eliminar el material")
+      console.error("Error deleting material:", error);
+      alert("Error al eliminar el material");
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -70,7 +98,9 @@ export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Gestión de Inventario</h1>
-              <p className="text-muted-foreground">Administra los materiales de laboratorio</p>
+              <p className="text-muted-foreground">
+                Administra los materiales de laboratorio
+              </p>
             </div>
             <Button onClick={() => setIsAddDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -118,20 +148,42 @@ export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-4 text-sm text-muted-foreground">{material.description}</p>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {material.description}
+                  </p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Total:</span>
-                      <span className="font-medium">{material.total_quantity}</span>
+                      <span className="font-medium">
+                        {material.totalQuantity}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Disponibles:</span>
-                      <span className="font-medium">{material.available_quantity}</span>
+                      <span className="text-muted-foreground">
+                        Disponibles:
+                      </span>
+                      <span className="font-medium">
+                        {material.availableQuantity}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">En préstamo:</span>
-                      <span className="font-medium">{material.total_quantity - material.available_quantity}</span>
+                      <span className="text-muted-foreground">
+                        En préstamo:
+                      </span>
+                      <span className="font-medium">
+                        {material.totalQuantity - material.availableQuantity}
+                      </span>
                     </div>
+                    {material.lab && (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Package className="h-3 w-3" />
+                        <span className="text-xs">
+                          {material.lab === "LAB_ELECT"
+                            ? "Lab-Elect"
+                            : "Lab-Ing"}
+                        </span>
+                      </div>
+                    )}
                     {material.location && (
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <MapPin className="h-3 w-3" />
@@ -156,7 +208,11 @@ export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
                     <Pencil className="mr-2 h-3 w-3" />
                     Editar
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(material.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(material.id)}
+                  >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </CardFooter>
@@ -168,23 +224,44 @@ export function AdminMaterials({ profile, materials }: AdminMaterialsProps) {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Package className="h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No se encontraron materiales</h3>
-                <p className="text-sm text-muted-foreground">Intenta con otros términos de búsqueda</p>
+                <h3 className="mt-4 text-lg font-semibold">
+                  No se encontraron materiales
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Intenta con otros términos de búsqueda
+                </p>
               </CardContent>
             </Card>
           )}
         </div>
       </main>
 
-      <AddMaterialDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
+      <AddMaterialDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        profile={profile}
+      />
       {selectedMaterial && (
-        <EditMaterialDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} material={selectedMaterial} />
+        <EditMaterialDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          material={selectedMaterial}
+          profile={profile}
+        />
       )}
     </div>
-  )
+  );
 }
 
-function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddMaterialDialog({
+  open,
+  onOpenChange,
+  profile,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  profile: Profile;
+}) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -192,33 +269,38 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     total_quantity: 0,
     available_quantity: 0,
     location: "",
-  })
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+    lab: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
 
     try {
-      const form = new FormData(e.target as HTMLFormElement)
-      await addMaterial(form)
-      onOpenChange(false)
+      const form = new FormData(e.target as HTMLFormElement);
+      await addMaterial(form);
+      onOpenChange(false);
     } catch (error) {
-      console.error("Error adding material:", error)
-      setError(error instanceof Error ? error.message : "Error al agregar el material")
+      console.error("Error adding material:", error);
+      setError(
+        error instanceof Error ? error.message : "Error al agregar el material",
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Material</DialogTitle>
-          <DialogDescription>Completa la información del material de laboratorio</DialogDescription>
+          <DialogDescription>
+            Completa la información del material de laboratorio
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -231,7 +313,9 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                   required
                   name="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                 />
               </div>
 
@@ -242,7 +326,9 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                   required
                   name="category"
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -253,7 +339,9 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                 id="description"
                 name="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={3}
               />
             </div>
@@ -268,7 +356,12 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                   required
                   name="total_quantity"
                   value={formData.total_quantity}
-                  onChange={(e) => setFormData({ ...formData, total_quantity: Number.parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      total_quantity: Number.parseInt(e.target.value) || 0,
+                    })
+                  }
                 />
               </div>
 
@@ -278,20 +371,57 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                   id="location"
                   name="location"
                   value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lab">Laboratorio *</Label>
+              <Select
+                name="lab"
+                value={formData.lab}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, lab: value })
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un laboratorio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profile.role === "ADMIN" ? (
+                    <>
+                      <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                      <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                    </>
+                  ) : profile.assignedLab === "LAB_ELECT" ? (
+                    <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                  ) : profile.assignedLab === "LAB_ING" ? (
+                    <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Agregando...</>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Agregando...
+                </>
               ) : (
                 "Agregar Material"
               )}
@@ -300,52 +430,61 @@ function AddMaterialDialog({ open, onOpenChange }: { open: boolean; onOpenChange
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function EditMaterialDialog({
   open,
   onOpenChange,
   material,
+  profile,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  material: Material
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  material: Material;
+  profile: Profile;
 }) {
   const [formData, setFormData] = useState({
     name: material.name,
     description: material.description || "",
     category: material.category,
-    total_quantity: material.total_quantity,
-    available_quantity: material.available_quantity,
+    total_quantity: material.totalQuantity,
+    available_quantity: material.availableQuantity,
     location: material.location || "",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    lab: material.lab || "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
 
     try {
-      const form = new FormData(e.target as HTMLFormElement)
-      await updateMaterial(material.id, form)
-      onOpenChange(false)
+      const form = new FormData(e.target as HTMLFormElement);
+      await updateMaterial(material.id, form);
+      onOpenChange(false);
     } catch (error) {
-      console.error("Error updating material:", error)
-      setError(error instanceof Error ? error.message : "Error al actualizar el material")
+      console.error("Error updating material:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Error al actualizar el material",
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar Material</DialogTitle>
-          <DialogDescription>Actualiza la información del material</DialogDescription>
+          <DialogDescription>
+            Actualiza la información del material
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -358,7 +497,9 @@ function EditMaterialDialog({
                   required
                   name="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                 />
               </div>
 
@@ -369,7 +510,9 @@ function EditMaterialDialog({
                   required
                   name="category"
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -380,7 +523,9 @@ function EditMaterialDialog({
                 id="edit-description"
                 name="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={3}
               />
             </div>
@@ -395,7 +540,12 @@ function EditMaterialDialog({
                   required
                   name="total_quantity"
                   value={formData.total_quantity}
-                  onChange={(e) => setFormData({ ...formData, total_quantity: Number.parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      total_quantity: Number.parseInt(e.target.value) || 0,
+                    })
+                  }
                 />
               </div>
 
@@ -410,7 +560,10 @@ function EditMaterialDialog({
                   name="available_quantity"
                   value={formData.available_quantity}
                   onChange={(e) =>
-                    setFormData({ ...formData, available_quantity: Number.parseInt(e.target.value) || 0 })
+                    setFormData({
+                      ...formData,
+                      available_quantity: Number.parseInt(e.target.value) || 0,
+                    })
                   }
                 />
               </div>
@@ -421,20 +574,57 @@ function EditMaterialDialog({
                   id="edit-location"
                   name="location"
                   value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-lab">Laboratorio *</Label>
+              <Select
+                name="lab"
+                value={formData.lab}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, lab: value })
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un laboratorio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profile.role === "ADMIN" ? (
+                    <>
+                      <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                      <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                    </>
+                  ) : profile.assignedLab === "LAB_ELECT" ? (
+                    <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                  ) : profile.assignedLab === "LAB_ING" ? (
+                    <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
+                </>
               ) : (
                 "Guardar Cambios"
               )}
@@ -443,5 +633,5 @@ function EditMaterialDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

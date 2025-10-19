@@ -14,8 +14,8 @@ export default async function AdminLoansPage() {
     redirect("/dashboard");
   }
 
-  // Get all loans with details
-  const loans = await prisma.loan.findMany({
+  // Get loans with lab filtering for LAB_MANAGER
+  let loansQuery: any = {
     include: {
       student: {
         select: {
@@ -32,13 +32,29 @@ export default async function AdminLoansPage() {
               id: true,
               name: true,
               description: true,
+              lab: true,
             },
           },
         },
       },
     },
     orderBy: { createdAt: "desc" },
-  });
+  };
+
+  // If user is LAB_MANAGER, filter loans by their assigned lab
+  if (user.role === "LAB_MANAGER" && user.assignedLab) {
+    loansQuery.where = {
+      items: {
+        some: {
+          material: {
+            lab: user.assignedLab,
+          },
+        },
+      },
+    };
+  }
+
+  const loans = await prisma.loan.findMany(loansQuery);
 
   return <AdminLoans profile={user} loans={loans} />;
 }
