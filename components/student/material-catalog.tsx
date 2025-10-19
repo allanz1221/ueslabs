@@ -135,7 +135,7 @@ export function MaterialCatalog({ materials, profile }: MaterialCatalogProps) {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={handleCreateLoan} className="w-full">
+                <Button onClick={handleCreateLoan} className="w-full" type="button">
                   Crear Solicitud de Préstamo
                 </Button>
               </CardFooter>
