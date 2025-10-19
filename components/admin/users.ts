@@ -22,18 +22,18 @@ export async function updateUserAssignedLab(
   userId: string,
   assignedLab: Lab | null,
 ) {
-  try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { assignedLab: assignedLab },
-    });
-  } catch (error) {
-    // If assignedLab field doesn't exist yet (before DB migration), ignore the error
-    console.warn("assignedLab field may not exist in database yet:", error);
-    throw new Error(
-      "El campo assignedLab aún no existe en la base de datos. Ejecuta la migración primero.",
-    );
-  }
+  // Temporarily disabled until DB migration is run
+  console.warn(
+    "updateUserAssignedLab temporarily disabled - DB migration needed",
+  );
+  throw new Error(
+    "La funcionalidad de laboratorios asignados estará disponible después de ejecutar la migración de la base de datos.",
+  );
 
-  revalidatePath("/admin/users");
+  // Uncomment after DB migration:
+  // await prisma.user.update({
+  //   where: { id: userId },
+  //   data: { assignedLab: assignedLab },
+  // });
+  // revalidatePath("/admin/users");
 }

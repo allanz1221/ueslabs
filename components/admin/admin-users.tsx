@@ -196,8 +196,9 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
     } catch (error) {
       console.error("Error updating assigned lab:", error);
       toast({
-        title: "Error",
-        description: "No se pudo actualizar el laboratorio asignado",
+        title: "Funcionalidad Temporalmente Deshabilitada",
+        description:
+          "La asignación de laboratorios estará disponible después de ejecutar la migración de la base de datos.",
         variant: "destructive",
       });
     }
@@ -492,8 +493,9 @@ function UsersList({
                         value === "" ? null : (value as Lab),
                       )
                     }
+                    disabled={true}
                   >
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[140px] opacity-50">
                       <SelectValue placeholder="Lab asignado" />
                     </SelectTrigger>
                     <SelectContent>
@@ -509,6 +511,12 @@ function UsersList({
           <CardContent>
             <div className="space-y-1 text-sm text-muted-foreground">
               {user.studentId && <p>Matrícula: {user.studentId}</p>}
+              {user.role === UserRole.LAB_MANAGER && (
+                <p className="text-yellow-600">
+                  ⚠️ Asignación de laboratorio disponible después de migración
+                  DB
+                </p>
+              )}
               {user.assignedLab && user.role === UserRole.LAB_MANAGER && (
                 <p>
                   Laboratorio:{" "}
