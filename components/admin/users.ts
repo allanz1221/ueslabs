@@ -22,18 +22,10 @@ export async function updateUserAssignedLab(
   userId: string,
   assignedLab: Lab | null,
 ) {
-  // Temporarily disabled until DB migration is run
-  console.warn(
-    "updateUserAssignedLab temporarily disabled - DB migration needed",
-  );
-  throw new Error(
-    "La funcionalidad de laboratorios asignados estará disponible después de ejecutar la migración de la base de datos.",
-  );
+  await prisma.user.update({
+    where: { id: userId },
+    data: { assignedLab: assignedLab },
+  });
 
-  // Uncomment after DB migration:
-  // await prisma.user.update({
-  //   where: { id: userId },
-  //   data: { assignedLab: assignedLab },
-  // });
-  // revalidatePath("/admin/users");
+  revalidatePath("/admin/users");
 }

@@ -67,26 +67,23 @@ export async function PATCH(
 
     // Validate lab manager permissions
     if (user.role === "LAB_MANAGER") {
-      // Skip validation if assignedLab field doesn't exist yet (before DB migration)
-      if (user.assignedLab !== undefined) {
-        if (!user.assignedLab) {
-          return NextResponse.json(
-            { error: "No tienes un laboratorio asignado" },
-            { status: 403 },
-          );
-        }
-
-        // Check if all materials in the loan belong to the manager's lab
-        const hasPermission = currentLoan.items.every(
-          (item) => item.material.lab === user.assignedLab,
+      if (!user.assignedLab) {
+        return NextResponse.json(
+          { error: "No tienes un laboratorio asignado" },
+          { status: 403 },
         );
+      }
 
-        if (!hasPermission) {
-          return NextResponse.json(
-            { error: "No tienes permisos para gestionar este préstamo" },
-            { status: 403 },
-          );
-        }
+      // Check if all materials in the loan belong to the manager's lab
+      const hasPermission = currentLoan.items.every(
+        (item) => item.material.lab === user.assignedLab,
+      );
+
+      if (!hasPermission) {
+        return NextResponse.json(
+          { error: "No tienes permisos para gestionar este préstamo" },
+          { status: 403 },
+        );
       }
     }
 

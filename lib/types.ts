@@ -21,7 +21,7 @@ export interface Profile {
   role: UserRole;
   program: Program | null;
   studentId: string | null;
-  assignedLab?: Lab | null; // Optional until DB migration is run
+  assignedLab: Lab | null;
   createdAt: Date;
 }
 

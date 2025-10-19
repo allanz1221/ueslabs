@@ -19,7 +19,7 @@ export async function getCurrentUser() {
       role: true,
       program: true,
       studentId: true,
-      // assignedLab: true, // Commented out until DB migration is run
+      assignedLab: true,
       createdAt: true,
     },
   });
