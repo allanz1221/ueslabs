@@ -29,13 +29,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, UserPlus, Download, Shield } from "lucide-react";
+import { Upload, UserPlus, Download, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Profile, Lab } from "@/lib/types";
 import { User, UserRole } from "@prisma/client";
 import {
   updateUserRole,
   updateUserAssignedLab,
+  updateUserProgram,
+  updateUserData,
 } from "@/components/admin/users";
 
 interface AdminUsersProps {
@@ -193,6 +195,31 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
       toast({
         title: "Error",
         description: "No se pudo actualizar el laboratorio asignado",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleProgramChange(userId: string, program: string | null) {
+    try {
+      await updateUserProgram(userId, program);
+
+      toast({
+        title: "Éxito",
+        description: "Programa actualizado correctamente",
+      });
+
+      // Optimistically update UI
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user.id === userId ? { ...user, program } : user,
+        ),
+      );
+    } catch (error) {
+      console.error("Error updating program:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el programa",
         variant: "destructive",
       });
     }
@@ -400,6 +427,7 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
             users={users}
             onRoleChange={handleRoleChange}
             onAssignedLabChange={handleAssignedLabChange}
+            onProgramChange={handleProgramChange}
           />
         </TabsContent>
 
@@ -408,6 +436,7 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
             users={users.filter((u) => u.role === UserRole.STUDENT)}
             onRoleChange={handleRoleChange}
             onAssignedLabChange={handleAssignedLabChange}
+            onProgramChange={handleProgramChange}
           />
         </TabsContent>
 
@@ -416,6 +445,7 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
             users={users.filter((u) => u.role === UserRole.ADMIN)}
             onRoleChange={handleRoleChange}
             onAssignedLabChange={handleAssignedLabChange}
+            onProgramChange={handleProgramChange}
           />
         </TabsContent>
       </Tabs>
@@ -427,11 +457,16 @@ function UsersList({
   users,
   onRoleChange,
   onAssignedLabChange,
+  onProgramChange,
 }: {
   users: any[];
   onRoleChange: (userId: string, newRole: UserRole) => void;
   onAssignedLabChange?: (userId: string, assignedLab: Lab | null) => void;
+  onProgramChange?: (userId: string, program: string | null) => void;
 }) {
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   if (users.length === 0) {
     return (
       <Card>
@@ -444,78 +479,311 @@ function UsersList({
     );
   }
 
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setIsEditDialogOpen(true);
+  };
+
   return (
-    <div className="grid gap-4">
-      {users.map((user) => (
-        <Card key={user.id}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {user.name}
-                  {user.role === UserRole.ADMIN && (
-                    <Shield className="h-4 w-4 text-primary" />
-                  )}
-                </CardTitle>
-                <CardDescription>{user.email}</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Select
-                  value={user.role}
-                  onValueChange={(value: any) => onRoleChange(user.id, value)}
+    <>
+      <div className="grid gap-4">
+        {users.map((user) => (
+          <Card key={user.id}>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2">
+                    {user.name || "Sin nombre"}
+                    {user.role === UserRole.ADMIN && (
+                      <Shield className="h-4 w-4 text-primary" />
+                    )}
+                  </CardTitle>
+                  <CardDescription>{user.email}</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditUser(user)}
                 >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={UserRole.STUDENT}>Estudiante</SelectItem>
-                    <SelectItem value={UserRole.ADMIN}>
-                      Administrador
-                    </SelectItem>
-                    <SelectItem value={UserRole.LAB_MANAGER}>
-                      Responsable de Laboratorio
-                    </SelectItem>
-                    <SelectItem value={UserRole.PROFESSOR}>Profesor</SelectItem>
-                  </SelectContent>
-                </Select>
-                {user.role === UserRole.LAB_MANAGER && onAssignedLabChange && (
-                  <Select
-                    value={user.assignedLab || ""}
-                    onValueChange={(value) =>
-                      onAssignedLabChange(
-                        user.id,
-                        value === "" ? null : (value as Lab),
-                      )
-                    }
-                    disabled={false}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Lab asignado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Sin asignar</SelectItem>
-                      <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
-                      <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  Editar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                <div>
+                  <span className="font-medium">Rol:</span>{" "}
+                  {user.role === UserRole.STUDENT && "Estudiante"}
+                  {user.role === UserRole.ADMIN && "Administrador"}
+                  {user.role === UserRole.LAB_MANAGER &&
+                    "Responsable de Laboratorio"}
+                  {user.role === UserRole.PROFESSOR && "Profesor"}
+                </div>
+                {user.studentId && (
+                  <div>
+                    <span className="font-medium">Matrícula:</span>{" "}
+                    {user.studentId}
+                  </div>
+                )}
+                {user.program && (
+                  <div>
+                    <span className="font-medium">Programa:</span>{" "}
+                    {user.program === "MECATRONICA"
+                      ? "Mecatrónica"
+                      : "Manufactura"}
+                  </div>
+                )}
+                {user.assignedLab && user.role === UserRole.LAB_MANAGER && (
+                  <div>
+                    <span className="font-medium">Laboratorio:</span>{" "}
+                    {user.assignedLab === "LAB_ELECT" ? "Lab-Elect" : "Lab-Ing"}
+                  </div>
                 )}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              {user.studentId && <p>Matrícula: {user.studentId}</p>}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-              {user.assignedLab && user.role === UserRole.LAB_MANAGER && (
-                <p>
-                  Laboratorio:{" "}
-                  {user.assignedLab === "LAB_ELECT" ? "Lab-Elect" : "Lab-Ing"}
-                </p>
-              )}
+      {selectedUser && (
+        <EditUserDialog
+          user={selectedUser}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onRoleChange={onRoleChange}
+          onAssignedLabChange={onAssignedLabChange}
+          onProgramChange={onProgramChange}
+        />
+      )}
+    </>
+  );
+}
+
+interface EditUserDialogProps {
+  user: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onRoleChange: (userId: string, newRole: UserRole) => void;
+  onAssignedLabChange?: (userId: string, assignedLab: Lab | null) => void;
+  onProgramChange?: (userId: string, program: string | null) => void;
+}
+
+function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+  onRoleChange,
+  onAssignedLabChange,
+  onProgramChange,
+}: EditUserDialogProps) {
+  const [formData, setFormData] = useState({
+    name: user.name || "",
+    email: user.email || "",
+    studentId: user.studentId || "",
+    role: user.role || UserRole.STUDENT,
+    program: user.program || "",
+    assignedLab: user.assignedLab || "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Update user data via API
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar usuario");
+      }
+
+      // Update role if changed
+      if (formData.role !== user.role) {
+        await onRoleChange(user.id, formData.role);
+      }
+
+      // Update assigned lab if changed
+      if (onAssignedLabChange && formData.assignedLab !== user.assignedLab) {
+        await onAssignedLabChange(
+          user.id,
+          formData.assignedLab === "" ? null : (formData.assignedLab as Lab),
+        );
+      }
+
+      // Update program if changed
+      if (onProgramChange && formData.program !== user.program) {
+        await onProgramChange(
+          user.id,
+          formData.program === "" ? null : formData.program,
+        );
+      }
+
+      toast({
+        title: "Éxito",
+        description: "Usuario actualizado correctamente",
+      });
+
+      onOpenChange(false);
+      window.location.reload(); // Refresh to show changes
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el usuario",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Editar Usuario</DialogTitle>
+          <DialogDescription>
+            Modifica la información del usuario
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre Completo</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="Nombre completo"
+              />
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo Electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder="email@ejemplo.com"
+                disabled // Email shouldn't be editable in most cases
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="studentId">Matrícula</Label>
+              <Input
+                id="studentId"
+                value={formData.studentId}
+                onChange={(e) =>
+                  setFormData({ ...formData, studentId: e.target.value })
+                }
+                placeholder="Matrícula del estudiante"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Rol</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value: UserRole) =>
+                  setFormData({ ...formData, role: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.STUDENT}>Estudiante</SelectItem>
+                  <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
+                  <SelectItem value={UserRole.LAB_MANAGER}>
+                    Responsable de Laboratorio
+                  </SelectItem>
+                  <SelectItem value={UserRole.PROFESSOR}>Profesor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="program">Programa Educativo</Label>
+              <Select
+                value={formData.program}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, program: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un programa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin programa</SelectItem>
+                  <SelectItem value="MECATRONICA">Mecatrónica</SelectItem>
+                  <SelectItem value="MANUFACTURA">Manufactura</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.role === UserRole.LAB_MANAGER && (
+              <div className="space-y-2">
+                <Label htmlFor="assignedLab">Laboratorio Asignado</Label>
+                <Select
+                  value={formData.assignedLab}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, assignedLab: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un laboratorio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin asignar</SelectItem>
+                    <SelectItem value="LAB_ELECT">Lab-Elect</SelectItem>
+                    <SelectItem value="LAB_ING">Lab-Ing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

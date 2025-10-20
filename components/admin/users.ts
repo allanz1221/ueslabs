@@ -29,3 +29,32 @@ export async function updateUserAssignedLab(
 
   revalidatePath("/admin/users");
 }
+
+export async function updateUserProgram(
+  userId: string,
+  program: string | null,
+) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { program: program },
+  });
+
+  revalidatePath("/admin/users");
+}
+
+export async function updateUserData(
+  userId: string,
+  data: {
+    name?: string;
+    studentId?: string | null;
+    program?: string | null;
+    assignedLab?: $Enums.Lab | null;
+  },
+) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: data,
+  });
+
+  revalidatePath("/admin/users");
+}
