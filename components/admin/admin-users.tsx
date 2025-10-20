@@ -1,11 +1,9 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect } from "react";
-import { createBrowserClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import type { Profile, Lab } from "@/lib/types";
+import { User, UserRole, Program } from "@prisma/client";
 import {
   Card,
   CardContent,
@@ -13,6 +11,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -22,23 +30,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, UserPlus, Download, Shield, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import type { Profile, Lab } from "@/lib/types";
-import { User, UserRole } from "@prisma/client";
+import { UserPlus, Shield, Loader2 } from "lucide-react";
 import {
   updateUserRole,
   updateUserAssignedLab,
   updateUserProgram,
-  updateUserData,
 } from "@/components/admin/users";
 
 interface AdminUsersProps {
@@ -48,23 +45,19 @@ interface AdminUsersProps {
 export function AdminUsers({ initialUsers }: AdminUsersProps) {
   const [users, setUsers] = useState<any[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  // Form states
+  // Form states for new user
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [role, setRole] = useState<
-    "student" | "admin" | "lab_manager" | "professor"
-  >("student");
-  const [program, setProgram] = useState<"mecatronica" | "manufactura" | "">(
-    "",
-  );
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
+  const [program, setProgram] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleAddUser(e: React.FormEvent) {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/users/create", {
@@ -77,90 +70,36 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
           fullName,
           studentId,
           role,
-          program,
+          program: program || null,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Error al crear usuario");
+        const error = await response.json();
+        throw new Error(error.error || "Error al crear usuario");
       }
 
       toast({
         title: "Éxito",
-        description: "Usuario creado correctamente",
+        description:
+          "Usuario creado correctamente. Contraseña temporal: temp123456",
       });
 
       setIsAddDialogOpen(false);
       resetForm();
-      window.location.reload(); // Refresh to show new user
+      window.location.reload();
     } catch (error) {
       console.error("Error adding user:", error);
       toast({
         title: "Error",
-        description: "No se pudo crear el usuario",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo crear el usuario",
         variant: "destructive",
       });
-    }
-  }
-
-  async function handleBulkUpload(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!csvFile) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona un archivo CSV",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const text = await csvFile.text();
-      const lines = text.split("\n").filter((line) => line.trim());
-
-      // Skip header row
-      const dataLines = lines.slice(1);
-
-      const users = dataLines.map((line) => {
-        const [email, fullName, studentId, role, program] = line
-          .split(",")
-          .map((s) => s.trim());
-        return {
-          email,
-          fullName,
-          studentId,
-          role: (role as any) || "student",
-          program: (program as any) || null,
-        };
-      });
-
-      toast({
-        title: "Procesando",
-        description: `Se encontraron ${users.length} usuarios en el archivo CSV`,
-      });
-
-      const res = await fetch("/api/users/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ users }),
-      });
-      const result = await res.json();
-
-      toast({
-        title: "Resultado",
-        description: `Actualizados: ${result.updated} | Fallidos: ${result.failed}`,
-      });
-
-      setIsBulkDialogOpen(false);
-      setCsvFile(null);
-    } catch (error) {
-      console.error("Error processing CSV:", error);
-      toast({
-        title: "Error",
-        description: "Error al procesar el archivo CSV",
-        variant: "destructive",
-      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -173,7 +112,6 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
         description: "Rol actualizado correctamente",
       });
 
-      // Optimistically update UI
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId ? { ...user, role: newRole } : user,
@@ -201,7 +139,6 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
         description: "Laboratorio asignado correctamente",
       });
 
-      // Optimistically update UI
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId ? { ...user, assignedLab } : user,
@@ -226,7 +163,6 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
         description: "Programa actualizado correctamente",
       });
 
-      // Optimistically update UI
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId ? { ...user, program } : user,
@@ -246,23 +182,12 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
     setEmail("");
     setFullName("");
     setStudentId("");
-    setRole("student");
-  }
-
-  function downloadTemplate() {
-    const csv =
-      "email,full_name,student_id,role\nejemplo@universidad.edu,Juan Pérez,2024001,student\nadmin@universidad.edu,María Admin,ADMIN01,admin";
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "plantilla_usuarios.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    setRole(UserRole.STUDENT);
+    setProgram("");
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
@@ -270,163 +195,115 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
             Administra usuarios y sus roles en el sistema
           </p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
-                Carga Masiva
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Carga Masiva de Usuarios</DialogTitle>
-                <DialogDescription>
-                  Sube un archivo CSV con los datos de los usuarios
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleBulkUpload} className="space-y-4">
-                <div>
-                  <Label>Archivo CSV</Label>
-                  <Input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-                    required
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Formato: email, nombre completo, matrícula, rol
-                  </p>
-                </div>
+
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Agregar Usuario
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+              <DialogDescription>
+                Completa los datos del nuevo usuario
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Correo Electrónico *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="usuario@ejemplo.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fullName">Nombre Completo *</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  placeholder="Nombre y apellidos"
+                />
+              </div>
+              <div>
+                <Label htmlFor="studentId">Matrícula</Label>
+                <Input
+                  id="studentId"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  placeholder="Opcional"
+                />
+              </div>
+              <div>
+                <Label htmlFor="role">Rol *</Label>
+                <Select
+                  value={role}
+                  onValueChange={(value: UserRole) => setRole(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UserRole.STUDENT}>Estudiante</SelectItem>
+                    <SelectItem value={UserRole.ADMIN}>
+                      Administrador
+                    </SelectItem>
+                    <SelectItem value={UserRole.LAB_MANAGER}>
+                      Responsable de Laboratorio
+                    </SelectItem>
+                    <SelectItem value={UserRole.PROFESSOR}>Profesor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="program">Programa Educativo</Label>
+                <Select
+                  value={program}
+                  onValueChange={(value) => setProgram(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un programa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin programa</SelectItem>
+                    <SelectItem value="MECATRONICA">Mecatrónica</SelectItem>
+                    <SelectItem value="MANUFACTURA">Manufactura</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={downloadTemplate}
-                  className="w-full bg-transparent"
+                  onClick={() => setIsAddDialogOpen(false)}
+                  disabled={isSubmitting}
                 >
-                  <Download className="mr-2 h-4 w-4" />
-                  Descargar Plantilla CSV
+                  Cancelar
                 </Button>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsBulkDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="flex-1">
-                    Procesar CSV
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Agregar Usuario
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
-                <DialogDescription>
-                  Completa los datos del nuevo usuario
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddUser} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Correo Electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fullName">Nombre Completo</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="studentId">Matrícula</Label>
-                  <Input
-                    id="studentId"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role">Rol</Label>
-                  <Select
-                    value={role}
-                    onValueChange={(value: any) => setRole(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={UserRole.STUDENT}>
-                        Estudiante
-                      </SelectItem>
-                      <SelectItem value={UserRole.ADMIN}>
-                        Administrador
-                      </SelectItem>
-                      <SelectItem value={UserRole.LAB_MANAGER}>
-                        Responsable de Laboratorio
-                      </SelectItem>
-                      <SelectItem value={UserRole.PROFESSOR}>
-                        Profesor
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="program">Programa</Label>
-                  <Select
-                    value={program}
-                    onValueChange={(value: any) => setProgram(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin programa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Sin programa</SelectItem>
-                      <SelectItem value="mecatronica">Mecatrónica</SelectItem>
-                      <SelectItem value="manufactura">Manufactura</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsAddDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="flex-1">
-                    Agregar
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    "Crear Usuario"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs defaultValue="all" className="space-y-6">
         <TabsList>
           <TabsTrigger value="all">Todos ({users.length})</TabsTrigger>
           <TabsTrigger value="students">
@@ -436,6 +313,10 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
           <TabsTrigger value="admins">
             Administradores (
             {users.filter((u) => u.role === UserRole.ADMIN).length})
+          </TabsTrigger>
+          <TabsTrigger value="lab-managers">
+            Responsables (
+            {users.filter((u) => u.role === UserRole.LAB_MANAGER).length})
           </TabsTrigger>
         </TabsList>
 
@@ -465,9 +346,25 @@ export function AdminUsers({ initialUsers }: AdminUsersProps) {
             onProgramChange={handleProgramChange}
           />
         </TabsContent>
+
+        <TabsContent value="lab-managers" className="space-y-4">
+          <UsersList
+            users={users.filter((u) => u.role === UserRole.LAB_MANAGER)}
+            onRoleChange={handleRoleChange}
+            onAssignedLabChange={handleAssignedLabChange}
+            onProgramChange={handleProgramChange}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
+}
+
+interface UsersListProps {
+  users: any[];
+  onRoleChange: (userId: string, newRole: UserRole) => void;
+  onAssignedLabChange: (userId: string, assignedLab: Lab | null) => void;
+  onProgramChange: (userId: string, program: string | null) => void;
 }
 
 function UsersList({
@@ -475,12 +372,7 @@ function UsersList({
   onRoleChange,
   onAssignedLabChange,
   onProgramChange,
-}: {
-  users: any[];
-  onRoleChange: (userId: string, newRole: UserRole) => void;
-  onAssignedLabChange?: (userId: string, assignedLab: Lab | null) => void;
-  onProgramChange?: (userId: string, program: string | null) => void;
-}) {
+}: UsersListProps) {
   if (users.length === 0) {
     return (
       <Card>
@@ -508,7 +400,7 @@ function UsersList({
                 </CardTitle>
                 <CardDescription>{user.email}</CardDescription>
                 {user.studentId && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Matrícula: {user.studentId}
                   </p>
                 )}
@@ -546,7 +438,6 @@ function UsersList({
                 <Select
                   value={user.program || ""}
                   onValueChange={(value) =>
-                    onProgramChange &&
                     onProgramChange(user.id, value === "" ? null : value)
                   }
                 >
@@ -561,7 +452,7 @@ function UsersList({
                 </Select>
               </div>
 
-              {user.role === UserRole.LAB_MANAGER && onAssignedLabChange && (
+              {user.role === UserRole.LAB_MANAGER && (
                 <div className="space-y-2">
                   <Label>Laboratorio</Label>
                   <Select
@@ -583,6 +474,22 @@ function UsersList({
                     </SelectContent>
                   </Select>
                 </div>
+              )}
+            </div>
+
+            {/* Display current assignments */}
+            <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+              {user.program && (
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  {user.program === "MECATRONICA"
+                    ? "Mecatrónica"
+                    : "Manufactura"}
+                </span>
+              )}
+              {user.assignedLab && user.role === UserRole.LAB_MANAGER && (
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                  {user.assignedLab === "LAB_ELECT" ? "Lab-Elect" : "Lab-Ing"}
+                </span>
               )}
             </div>
           </CardContent>
