@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
-import { Lab } from "@/lib/types";
+import { $Enums } from "@prisma/client";
 
 export async function updateUserRole(userId: string, newRole: UserRole) {
   if (!Object.values(UserRole).includes(newRole)) {
@@ -20,7 +20,7 @@ export async function updateUserRole(userId: string, newRole: UserRole) {
 
 export async function updateUserAssignedLab(
   userId: string,
-  assignedLab: Lab | null,
+  assignedLab: $Enums.Lab | null,
 ) {
   await prisma.user.update({
     where: { id: userId },

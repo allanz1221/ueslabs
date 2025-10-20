@@ -4,15 +4,11 @@ import {
   LoanStatus,
   ReservationStatus,
   RoomType,
+  $Enums,
 } from "@prisma/client";
 
 export type { UserRole, Program, LoanStatus, ReservationStatus, RoomType };
-
-// Define Lab enum manually since it may not be exported from Prisma
-export enum Lab {
-  LAB_ELECT = "LAB_ELECT",
-  LAB_ING = "LAB_ING",
-}
+export type Lab = $Enums.Lab;
 
 export interface Profile {
   id: string;
