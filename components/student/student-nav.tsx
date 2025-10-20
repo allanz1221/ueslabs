@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import type { Profile } from "@/lib/types"
-import { Button } from "@/components/ui/button"
+import type { Profile } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,26 +10,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { FlaskConical, User, LogOut, Package, History } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { NotificationBell } from "@/components/notifications/notification-bell"
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FlaskConical, User, LogOut, Package, History } from "lucide-react";
+import { signOut } from "next-auth/react";
+// import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface StudentNavProps {
-  profile: Profile
+  profile: Profile;
 }
 
 export function StudentNav({ profile }: StudentNavProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
-  }
+    await signOut({ callbackUrl: "/" });
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
@@ -55,7 +53,7 @@ export function StudentNav({ profile }: StudentNavProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell userId={profile.id} />
+          {/* <NotificationBell userId={profile.id} /> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -66,8 +64,10 @@ export function StudentNav({ profile }: StudentNavProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{profile.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{profile.email}</p>
+                  <p className="text-sm font-medium">{profile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {profile.email}
+                  </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -96,5 +96,5 @@ export function StudentNav({ profile }: StudentNavProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

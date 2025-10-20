@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type { Profile } from "@/lib/types"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import type { Profile } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,26 +10,30 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { FlaskConical, User, LogOut, Package, Users, BarChart3 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { NotificationBell } from "@/components/notifications/notification-bell"
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  FlaskConical,
+  User,
+  LogOut,
+  Package,
+  Users,
+  BarChart3,
+} from "lucide-react";
+import { signOut } from "next-auth/react";
+// import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface AdminNavProps {
-  profile: Profile
+  profile: Profile;
 }
 
 export function AdminNav({ profile }: AdminNavProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
-  }
+    await signOut({ callbackUrl: "/" });
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
@@ -37,7 +41,9 @@ export function AdminNav({ profile }: AdminNavProps) {
         <div className="flex items-center gap-6">
           <Link href="/admin/dashboard" className="flex items-center gap-2">
             <FlaskConical className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">App Laboratorio UES Admin</span>
+            <span className="text-lg font-semibold">
+              App Laboratorio UES Admin
+            </span>
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
             <Button asChild variant="ghost">
@@ -65,7 +71,7 @@ export function AdminNav({ profile }: AdminNavProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell userId={profile.id} />
+          {/* <NotificationBell userId={profile.id} /> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -76,8 +82,10 @@ export function AdminNav({ profile }: AdminNavProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{profile.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{profile.email}</p>
+                  <p className="text-sm font-medium">{profile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {profile.email}
+                  </p>
                   <AdminBadge />
                 </div>
               </DropdownMenuLabel>
@@ -125,9 +133,9 @@ export function AdminNav({ profile }: AdminNavProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }
 
 function AdminBadge({ className }: { className?: string }) {
-  return <Badge className={`w-fit ${className}`}>Administrador</Badge>
+  return <Badge className={`w-fit ${className}`}>Administrador</Badge>;
 }
